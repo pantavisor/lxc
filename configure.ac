@@ -637,6 +637,8 @@ if test "x$GCC" = "xyes"; then
 	fi
 fi
 
+AC_PROG_RANLIB
+
 # Files requiring some variable expansion
 AC_CONFIG_FILES([
 	Makefile
