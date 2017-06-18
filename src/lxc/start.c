@@ -210,8 +210,9 @@ static int match_fd(int fd)
 int lxc_check_inherited(struct lxc_conf *conf, bool closeall, int fd_to_ignore)
 {
 	struct dirent *direntp;
-	int fd, fddir;
+	int fd, fddir, ns;
 	DIR *dir;
+	bool ignore_ns_fd;
 
 	if (conf && conf->close_all_fds)
 		closeall = true;
@@ -239,6 +240,16 @@ restart:
 
 		if (fd == fddir || fd == lxc_log_fd || fd == fd_to_ignore)
 			continue;
+
+		for (ns = 0; ns < LXC_NS_MAX; ns++) {
+			if (conf && conf->inherit_ns_fd[ns] == fd)
+				ignore_ns_fd = true;
+		}
+
+		if (ignore_ns_fd) {
+			ignore_ns_fd = false;
+			continue;
+		}
 
 		if (current_config && fd == current_config->logfd)
 			continue;
@@ -880,7 +891,11 @@ static int do_start(void *data)
 		}
 	}
 
-	if (putenv("container=lxc")) {
+	char env[256] = "container=lxc";
+	if (handler->conf->type)
+		sprintf(env, "container=%s", handler->conf->type);
+
+	if (putenv(env)) {
 		SYSERROR("failed to set environment variable 'container=lxc'");
 		goto out_warn_father;
 	}

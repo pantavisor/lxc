@@ -378,6 +378,9 @@ struct lxc_conf {
 
 	/* indicator if the container will be destroyed on shutdown */
 	int ephemeral;
+
+	/* container type to override env */
+	char *type;
 };
 
 #ifdef HAVE_TLS

@@ -53,6 +53,10 @@ noinst_HEADERS += ../include/getsubopt.h
 endif
 
 sodir=$(libdir)
+
+# FIXME: wrap with configure -- build static version
+so_LIBRARIES = liblxc.a
+
 # use PROGRAMS to avoid complains from automake
 so_PROGRAMS = liblxc.so
 
@@ -68,7 +72,7 @@ if ENABLE_SELINUX
 LSM_SOURCES += lsm/selinux.c
 endif
 
-liblxc_so_SOURCES = \
+liblxc_a_SOURCES = \
 	arguments.c arguments.h \
 	bdev/bdev.c bdev/bdev.h \
 	bdev/lxcaufs.c bdev/lxcaufs.h \
@@ -123,11 +127,11 @@ liblxc_so_SOURCES = \
 	$(LSM_SOURCES)
 
 if ENABLE_CGMANAGER
-liblxc_so_SOURCES += cgroups/cgmanager.c
+liblxc_a_SOURCES += cgroups/cgmanager.c
 endif
 
 if IS_BIONIC
-liblxc_so_SOURCES += \
+liblxc_a_SOURCES += \
 	../include/ifaddrs.c ../include/ifaddrs.h \
 	../include/openpty.c ../include/openpty.h \
 	../include/lxcmntent.c ../include/lxcmntent.h
@@ -135,7 +139,7 @@ endif
 
 if !HAVE_GETLINE
 if HAVE_FGETLN
-liblxc_so_SOURCES += ../include/getline.c ../include/getline.h
+liblxc_a_SOURCES += ../include/getline.c ../include/getline.h
 endif
 endif
 
@@ -176,21 +180,26 @@ endif
 
 if ENABLE_SECCOMP
 AM_CFLAGS += -DHAVE_SECCOMP $(SECCOMP_CFLAGS)
-liblxc_so_SOURCES += seccomp.c
+liblxc_a_SOURCES += seccomp.c
 endif
 
-liblxc_so_CFLAGS = -fPIC -DPIC $(AM_CFLAGS) -pthread
+liblxc_a_CFLAGS = -fPIC -DPIC $(AM_CFLAGS) -pthread -static
 
+if ENABLE_CGMANAGER
+liblxc_a_CFLAGS += $(CGMANAGER_CFLAGS) $(DBUS_CFLAGS) $(NIH_CFLAGS) $(NIH_DBUS_CFLAGS)
+endif
+
+liblxc_so_SOURCES =
+liblxc_so_CFLAGS = -fPIC -DPIC $(AM_CFLAGS) -pthread -shared
 liblxc_so_LDFLAGS = \
 	-pthread \
 	-shared \
 	-Wl,-soname,liblxc.so.$(firstword $(subst ., ,@LXC_VERSION_ABI@))
 
-liblxc_so_LDADD = $(CAP_LIBS) $(APPARMOR_LIBS) $(SELINUX_LIBS) $(SECCOMP_LIBS)
+liblxc_so_LDADD = $(liblxc_a_OBJECTS) $(CAP_LIBS) $(APPARMOR_LIBS) $(SELINUX_LIBS) $(SECCOMP_LIBS)
 
 if ENABLE_CGMANAGER
 liblxc_so_LDADD += $(CGMANAGER_LIBS) $(DBUS_LIBS) $(NIH_LIBS) $(NIH_DBUS_LIBS)
-liblxc_so_CFLAGS += $(CGMANAGER_CFLAGS) $(DBUS_CFLAGS) $(NIH_CFLAGS) $(NIH_DBUS_CFLAGS)
 endif
 
 bin_SCRIPTS = tools/lxc-checkconfig

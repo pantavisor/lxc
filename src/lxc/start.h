@@ -31,6 +31,8 @@
 #include "state.h"
 #include "namespace.h"
 
+#include <lxc/lxccontainer.h>
+
 struct lxc_conf;
 
 struct lxc_handler;
@@ -41,17 +43,6 @@ struct lxc_operations {
 };
 
 struct cgroup_desc;
-
-enum {
-	LXC_NS_MNT,
-	LXC_NS_PID,
-	LXC_NS_UTS,
-	LXC_NS_IPC,
-	LXC_NS_USER,
-	LXC_NS_NET,
-	LXC_NS_CGROUP,
-	LXC_NS_MAX
-};
 
 struct ns_info {
 	const char *proc_name;

@@ -4191,6 +4191,8 @@ void lxc_conf_free(struct lxc_conf *conf)
 	lxc_clear_includes(conf);
 	lxc_clear_aliens(conf);
 	lxc_clear_environment(conf);
+	if (conf->type)
+		free(conf->type);
 	free(conf);
 }
 
