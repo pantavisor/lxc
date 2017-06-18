@@ -754,6 +754,7 @@ AC_ARG_ENABLE([thread-safety],
 	[AS_HELP_STRING([--enable-thread-safety], [enforce thread-safety otherwise fail the build [default=yes]])],
 	[enable_thread_safety=$enableval], [enable_thread_safety=yes])
 AM_CONDITIONAL([ENFORCE_THREAD_SAFETY], [test "x$enable_thread_safety" = "xyes"])
+AC_PROG_RANLIB
 
 AC_ARG_ENABLE([memfd-rexec],
 	[AS_HELP_STRING([--enable-memfd-rexec], [enforce liblxc as a memfd to protect against certain symlink attacks [default=yes]])],
