@@ -705,6 +705,7 @@ AC_ARG_ENABLE([thread-safety],
 	[AC_HELP_STRING([--enable-thread-safety], [enforce thread-safety otherwise fail the build [default=yes]])],
 	[], [enable_thread_safety=yes])
 AM_CONDITIONAL([ENFORCE_THREAD_SAFETY], [test "x$enable_thread_safety" = "xyes"])
+AC_PROG_RANLIB
 
 # Files requiring some variable expansion
 AC_CONFIG_FILES([
