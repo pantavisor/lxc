@@ -4876,6 +4876,8 @@ void lxc_conf_free(struct lxc_conf *conf)
 	free(conf->cgroup_meta.systemd_scope);
 	free(conf->shmount.path_host);
 	free(conf->shmount.path_cont);
+	if (conf->type)
+		free(conf->type);
 	free(conf);
 }
 

@@ -26,6 +26,17 @@ extern "C" {
 #define LXC_CREATE_MAXFLAGS       (1 << 1) /*!< Number of \c LXC_CREATE* flags */
 #define LXC_MOUNT_API_V1		   1
 
+enum {
+        LXC_NS_MNT,
+        LXC_NS_PID,
+        LXC_NS_UTS,
+        LXC_NS_IPC,
+        LXC_NS_USER,
+        LXC_NS_NET,
+        LXC_NS_CGROUP,
+        LXC_NS_MAX
+};
+
 struct bdev_specs;
 
 struct lxc_snapshot;
@@ -884,6 +895,25 @@ struct lxc_container {
 	 * \return Mount fd of the container's devpts instance.
 	 */
 	int (*devpts_fd)(struct lxc_container *c);
+
+	/*!
+	 * \brief Allow inheriting special namespaces via an API call
+	 *
+	 * \param pid PID from which to inherit a given namespace
+	 * \param namespaces Bitmask of namespaces to inherit, conforming to LXC_NS_MAX
+	 *
+	 * \return \c 0 on success, nonzero on failure.
+	 */
+	bool (*set_inherit_namespaces)(struct lxc_container *c, int pid, unsigned short namespaces);
+
+	/*!
+	 * \brief Override 'lxc' container type for environment of pid 1
+	 *
+	 * \param type Type of new container as string
+	 *
+	 * \return \c 0 on success, nonzero on failure.
+	 */
+	bool (*set_container_type)(struct lxc_container *c, char *type);
 };
 
 /*!
