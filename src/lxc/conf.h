@@ -379,6 +379,8 @@ struct lxc_conf {
 
 	/* procs */
 	struct lxc_list procs;
+
+	char *type;
 };
 
 extern int write_id_mapping(enum idtype idtype, pid_t pid, const char *buf,

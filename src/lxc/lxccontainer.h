@@ -24,6 +24,17 @@ extern "C" {
 #define LXC_CREATE_QUIET          (1 << 0) /*!< Redirect \c stdin to \c /dev/zero and \c stdout and \c stderr to \c /dev/null */
 #define LXC_CREATE_MAXFLAGS       (1 << 1) /*!< Number of \c LXC_CREATE* flags */
 
+enum {
+        LXC_NS_MNT,
+        LXC_NS_PID,
+        LXC_NS_UTS,
+        LXC_NS_IPC,
+        LXC_NS_USER,
+        LXC_NS_NET,
+        LXC_NS_CGROUP,
+        LXC_NS_MAX
+};
+
 struct bdev_specs;
 
 struct lxc_snapshot;
@@ -827,6 +838,23 @@ struct lxc_container {
 	 * \return \c true if the container was rebooted successfully, else \c false.
 	 */
 	bool (*reboot2)(struct lxc_container *c, int timeout);
+	 * \brief Allow inheriting special namespaces via an API call
+	 *
+	 * \param pid PID from which to inherit a given namespace
+	 * \param namespaces Bitmask of namespaces to inherit, conforming to LXC_NS_MAX
+	 *
+	 * \return \c 0 on success, nonzero on failure.
+	 */
+	bool (*set_inherit_namespaces)(struct lxc_container *c, int pid, unsigned short namespaces);
+
+	/*!
+	 * \brief Override 'lxc' container type for environment of pid 1
+	 *
+	 * \param type Type of new container as string
+	 *
+	 * \return \c 0 on success, nonzero on failure.
+	 */
+	bool (*set_container_type)(struct lxc_container *c, char *type);
 };
 
 /*!
