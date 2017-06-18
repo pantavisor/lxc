@@ -4057,6 +4057,8 @@ void lxc_conf_free(struct lxc_conf *conf)
 	lxc_clear_namespace(conf);
 	free(conf->cgroup_meta.dir);
 	free(conf->cgroup_meta.controllers);
+	if (conf->type)
+		free(conf->type);
 	free(conf);
 }
 

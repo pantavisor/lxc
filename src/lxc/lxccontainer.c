@@ -4945,6 +4945,61 @@ static bool do_lxcapi_restore(struct lxc_container *c, char *directory, bool ver
 
 WRAP_API_2(bool, lxcapi_restore, char *, bool)
 
+static bool do_lxcapi_set_inherit_namespaces(struct lxc_container *c, int pid, unsigned short namespaces)
+{
+	int i;
+
+	current_config = c->lxc_conf;
+
+	for (i = 0; i < LXC_NS_MAX; i++) {
+		if ((namespaces & (1 << i)) == 0)
+			continue;
+
+		if (pid < 1) {
+			SYSERROR("invalid pid to inherit namespace from (%d)", pid);
+			return false;
+		}
+
+		int fd;
+		char path[MAXPATHLEN];
+		snprintf(path, MAXPATHLEN, "/proc/%d/ns/%s", pid, ns_info[i].proc_name);
+
+		fd = open(path, O_RDONLY);
+		if (fd < 0) {
+			SYSERROR("failed to open %s", path);
+			return false;
+		}
+
+		INFO("set inherit namespace '%s' with fd '%d'", ns_info[i].proc_name, fd);
+		current_config->inherit_ns_fd[i] = fd;
+	}
+
+	current_config = NULL;
+
+	return true;
+}
+
+WRAP_API_2(bool, lxcapi_set_inherit_namespaces, int, unsigned short)
+
+static bool do_lxcapi_set_container_type(struct lxc_container *c, char *type)
+{
+	if (!c)
+		return false;
+
+	current_config = c->lxc_conf;
+
+	if (current_config->type)
+		free(type);
+
+	current_config->type = strdup(type);
+
+	current_config = NULL;
+
+	return true;
+}
+
+WRAP_API_1(bool, lxcapi_set_container_type, char *)
+
 static int lxcapi_attach_run_waitl(struct lxc_container *c, lxc_attach_options_t *options, const char *program, const char *arg, ...)
 {
 	va_list ap;
@@ -5112,6 +5167,8 @@ struct lxc_container *lxc_container_new(const char *name, const char *configpath
 	c->restore = lxcapi_restore;
 	c->migrate = lxcapi_migrate;
 	c->console_log = lxcapi_console_log;
+	c->set_inherit_namespaces = lxcapi_set_inherit_namespaces;
+	c->set_container_type = lxcapi_set_container_type;
 
 	return c;
 
