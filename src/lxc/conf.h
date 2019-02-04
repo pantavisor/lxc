@@ -380,6 +380,7 @@ struct lxc_conf {
 	/* procs */
 	struct lxc_list procs;
 
+	int inherit_ns_fd[LXC_NS_MAX];
 	char *type;
 };
 
