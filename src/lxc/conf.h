@@ -577,6 +577,7 @@ struct lxc_conf {
 	bool sched_core;
 	__u64 sched_core_cookie;
 
+	int inherit_ns_fd[LXC_NS_MAX];
 	char *type;
 };
 

@@ -265,6 +265,7 @@ restart:
 
 	while ((direntp = readdir(dir))) {
 		int ret;
+		int i;
 		bool matched = false;
 
 		if (strequal(direntp->d_name, "."))
@@ -1371,7 +1372,7 @@ static int do_start(void *data)
 	if (handler->conf->type)
 		sprintf(env, "container=%s", handler->conf->type);
 
-	ret = putenv(env)) 
+	ret = putenv(env); 
 
 	if (ret < 0) {
 		SYSERROR("Failed to set environment variable: container=lxc");

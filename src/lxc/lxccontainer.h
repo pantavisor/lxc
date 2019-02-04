@@ -26,17 +26,6 @@ extern "C" {
 #define LXC_CREATE_MAXFLAGS       (1 << 1) /*!< Number of \c LXC_CREATE* flags */
 #define LXC_MOUNT_API_V1		   1
 
-enum {
-        LXC_NS_MNT,
-        LXC_NS_PID,
-        LXC_NS_UTS,
-        LXC_NS_IPC,
-        LXC_NS_USER,
-        LXC_NS_NET,
-        LXC_NS_CGROUP,
-        LXC_NS_MAX
-};
-
 struct bdev_specs;
 
 struct lxc_snapshot;
