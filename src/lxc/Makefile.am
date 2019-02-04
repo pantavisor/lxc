@@ -71,12 +71,6 @@ endif
 
 sodir=$(libdir)
 
-# FIXME: wrap with configure -- build static version
-so_LIBRARIES = liblxc.a
-
-# use PROGRAMS to avoid complains from automake
-so_PROGRAMS = liblxc.so
-
 LSM_SOURCES = lsm/lsm.c \
 	      lsm/lsm.h \
 	      lsm/nop.c
