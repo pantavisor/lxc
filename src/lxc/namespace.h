@@ -64,16 +64,7 @@
 #  define CLONE_NEWNET            0x40000000
 #endif
 
-enum {
-	LXC_NS_USER,
-	LXC_NS_MNT,
-	LXC_NS_PID,
-	LXC_NS_UTS,
-	LXC_NS_IPC,
-	LXC_NS_NET,
-	LXC_NS_CGROUP,
-	LXC_NS_MAX
-};
+#include "pv_export.h"
 
 extern const struct ns_info {
 	const char *proc_name;
