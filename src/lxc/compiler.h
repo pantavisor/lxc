@@ -23,7 +23,13 @@
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE 1
 #endif
+
+/*
+ * Disable cdefs include for pantavisor
+ * */
+#if 0
 #include <sys/cdefs.h>
+#endif
 
 #include "config.h"
 

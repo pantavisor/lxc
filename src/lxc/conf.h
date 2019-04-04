@@ -376,6 +376,9 @@ struct lxc_conf {
 
 	/* procs */
 	struct lxc_list procs;
+
+	int inherit_ns_fd[LXC_NS_MAX];
+	char *type;
 };
 
 extern int write_id_mapping(enum idtype idtype, pid_t pid, const char *buf,

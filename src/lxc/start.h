@@ -34,6 +34,9 @@
 #include "conf.h"
 #include "namespace.h"
 #include "state.h"
+#include <lxc/lxccontainer.h>
+
+struct lxc_conf;
 
 struct lxc_handler {
 	/* Record the clone for namespaces flags that the container requested.
@@ -80,6 +83,7 @@ struct lxc_handler {
 	 * between child and parent.
 	 */
 	int data_sock[2];
+
 
 	/* The socketpair() fds used to wait on successful daemonized startup. */
 	int state_socket_pair[2];

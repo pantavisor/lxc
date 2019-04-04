@@ -1,6 +1,7 @@
 pkginclude_HEADERS = attach_options.h \
 		     lxccontainer.h \
-		     version.h
+		     version.h \
+		     pv_export.h
 
 noinst_HEADERS = attach.h \
 		 caps.h \
@@ -147,6 +148,7 @@ endif
 
 if !HAVE_GETGRGID_R
 liblxc_la_SOURCES += ../include/getgrgid_r.c ../include/getgrgid_r.h
+
 endif
 
 if !HAVE_GETLINE
@@ -234,6 +236,7 @@ bin_SCRIPTS=
 if ENABLE_COMMANDS
 bin_SCRIPTS += cmd/lxc-checkconfig \
 	       cmd/lxc-update-config
+
 endif
 
 if ENABLE_TOOLS
