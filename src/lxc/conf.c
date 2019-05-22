@@ -1562,6 +1562,7 @@ static int lxc_setup_devpts(struct lxc_conf *conf)
 	char devpts_mntopts[256];
 	char *mntopt_sets[5];
 	char default_devpts_mntopts[256] = "gid=5,newinstance,ptmxmode=0666,mode=0620";
+	struct stat sb;
 
 	if (conf->pty_max <= 0) {
 		DEBUG("No new devpts instance will be mounted since no pts "
@@ -1611,6 +1612,10 @@ static int lxc_setup_devpts(struct lxc_conf *conf)
 	}
 	DEBUG("Mount new devpts instance with options \"%s\"", *opts);
 
+	/* Check if a valid /dev/ptmx already exists (kernel version >= 4.7) */
+	if ((stat("/dev/ptmx", &sb) == 0) && (major(sb.st_rdev) == 5) && (minor(sb.st_rdev) == 2))
+		goto out;
+
 	/* Remove any pre-existing /dev/ptmx file. */
 	ret = remove("/dev/ptmx");
 	if (ret < 0) {
@@ -1655,6 +1660,7 @@ static int lxc_setup_devpts(struct lxc_conf *conf)
 	}
 	DEBUG("Created symlink from \"/dev/ptmx\" to \"/dev/pts/ptmx\"");
 
+out:
 	return 0;
 }
 
