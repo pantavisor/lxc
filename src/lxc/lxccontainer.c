@@ -789,6 +789,8 @@ static char **split_init_cmd(const char *incmd)
 {
 	__do_free char *copy = NULL;
 	char *p;
+	size_t len, retlen, tlen = 0;
+	char *t;
 	char **argv;
 	int nargs = 0;
 
@@ -802,8 +804,42 @@ static char **split_init_cmd(const char *incmd)
 	} while (!argv);
 
 	argv[0] = NULL;
-	lxc_iterate_parts (p, copy, " ")
-		push_arg(&argv, p, &nargs);
+	lxc_iterate_parts(p, copy, " ") {
+		if (p[0] == '\"' && p[strlen(p)-1] == '\"') {
+			t = calloc(1, strlen(p) * sizeof(char));
+			t = strcpy(t, p+1);
+			t[strlen(t)-1] = '\0';
+			push_arg(&argv, t, &nargs);
+		} else if (p[0] == '\"') {
+			tlen += strlen(p);
+			t = realloc(t, (tlen+1) * sizeof(char));
+			t = strcpy(t, p+1);
+			t[tlen-1] = ' ';
+			t[tlen] = '\0';
+			continue;
+		} else if (tlen) {
+			tlen += strlen(p);
+			t = realloc(t, (tlen+1) * sizeof(char));
+			t = strcat(t, p);
+			if (p[strlen(p)-1] == '\"') {
+				t[tlen-1] = '\0';
+				push_arg(&argv, t, &nargs);
+				tlen = 0;
+				free(t);
+				continue;
+			}
+			t[tlen-1] = ' ';
+			t[tlen] = '\0';
+			continue;
+		} else {
+			push_arg(&argv, p, &nargs);
+		}
+	}
+	if (tlen) {
+		t[tlen-1] = '\0';
+		push_arg(&argv, t, &nargs);
+		free(t);
+	}
 
 	if (nargs == 0) {
 		free(argv);
