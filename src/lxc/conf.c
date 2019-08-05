@@ -1850,10 +1850,6 @@ static int lxc_setup_devpts_child(struct lxc_handler *handler)
 	if (conf->pty_max <= 0)
 		return 0;
 
-	/* Check if a valid /dev/ptmx already exists (kernel version >= 4.7) */
-	if ((stat("/dev/ptmx", &sb) == 0) && (major(sb.st_rdev) == 5) && (minor(sb.st_rdev) == 2))
-		goto out;
-
 	/* Remove any pre-existing /dev/ptmx file. */
 	ret = unlinkat(rootfs->dfd_dev, "ptmx", 0);
 	if (ret < 0) {
@@ -1933,7 +1929,6 @@ static int lxc_send_devpts_to_parent(struct lxc_handler *handler)
 
 	close_prot_errno_disarm(handler->conf->devpts_fd);
 
-out:
 	return 0;
 }
 
