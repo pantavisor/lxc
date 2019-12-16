@@ -163,6 +163,7 @@ int dir_mount(struct lxc_storage *bdev)
 	unsigned long mflags = 0, mntflags = 0, pflags = 0;
 	char *mntdata;
 	const char *src;
+	char dst[PATH_MAX];
 
 	if (strcmp(bdev->type, "dir"))
 		return -22;
@@ -186,12 +187,13 @@ int dir_mount(struct lxc_storage *bdev)
 
 	src = lxc_storage_get_path(bdev->src, bdev->type);
 
-	ret = mount(src, bdev->dest, "bind", MS_BIND | MS_REC | mntflags | pflags, mntdata);
+	realpath(bdev->dest, dst);
+	ret = mount(src, dst, "bind", MS_BIND | MS_REC | mntflags | pflags, mntdata);
 	if ((0 == ret) && (mntflags & MS_RDONLY)) {
 		DEBUG("Remounting \"%s\" on \"%s\" readonly",
 		      src ? src : "(none)", bdev->dest ? bdev->dest : "(none)");
 		mflags = add_required_remount_flags(src, bdev->dest, MS_BIND | MS_REC | mntflags | pflags | MS_REMOUNT);
-		ret = mount(src, bdev->dest, "bind", mflags, mntdata);
+		ret = mount(src, dst, "bind", mflags, mntdata);
 	}
 
 	if (ret < 0) {
