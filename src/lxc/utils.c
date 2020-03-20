@@ -1110,6 +1110,26 @@ out:
 	return dirfd;
 }
 
+static int open_with_realpath(const char *target, const char *prefix_skip)
+{
+	char realtarget[PATH_MAX], realprefix[PATH_MAX];
+
+	// bail if realpath fails
+	if (realpath(target, realtarget) && realpath(prefix_skip, realprefix)) {
+		int pl = strlen(realprefix);
+		if (strlen(realtarget) < pl) {
+			ERROR("Absolute symlink as target for mount is not supported yet.");
+			return -1;
+		}
+		if(strncmp(realprefix, realtarget, pl)) {
+			ERROR("target realpath is pointing to outside of realpath rootfs: %s vs %s", realprefix, realtarget);
+			return -1;
+		}
+		return open_without_symlink(realtarget, realprefix);
+	}
+	return open_without_symlink(target, prefix_skip);
+}
+
 /*
  * Safely mount a path into a container, ensuring that the mount target
  * is under the container's @rootfs.  (If @rootfs is NULL, then the container
@@ -1147,7 +1167,7 @@ int safe_mount(const char *src, const char *dest, const char *fstype,
 		mntsrc = srcbuf;
 	}
 
-	destfd = open_without_symlink(dest, rootfs);
+	destfd = open_with_realpath(dest, rootfs);
 	if (destfd < 0) {
 		if (srcfd != -1) {
 			saved_errno = errno;
