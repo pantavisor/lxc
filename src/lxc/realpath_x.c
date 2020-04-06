@@ -26,21 +26,85 @@
  * SUCH DAMAGE.
  */
 
-#if defined(LIBC_SCCS) && !defined(lint)
-static char sccsid[] = "@(#)realpath.c	8.1 (Berkeley) 2/16/94";
-#endif /* LIBC_SCCS and not lint */
 #include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
 
-#include "namespace.h"
 #include <sys/param.h>
 #include <sys/stat.h>
 
 #include <errno.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "un-namespace.h"
+
+#include "log.h"
+
+lxc_log_define(realpath_x, lxc);
+
+/*
+ * Copy string src to buffer dst of size dsize.  At most dsize-1
+ * chars will be copied.  Always NUL terminates (unless dsize == 0).
+ * Returns strlen(src); if retval >= dsize, truncation occurred.
+ */
+static size_t
+_pv_strlcpy(char * __restrict dst, const char * __restrict src, size_t dsize)
+{
+	const char *osrc = src;
+	size_t nleft = dsize;
+
+	/* Copy as many bytes as will fit. */
+	if (nleft != 0) {
+		while (--nleft != 0) {
+			if ((*dst++ = *src++) == '\0')
+				break;
+		}
+	}
+
+	/* Not enough room in dst, add NUL and traverse rest of src. */
+	if (nleft == 0) {
+		if (dsize != 0)
+			*dst = '\0';		/* NUL-terminate dst */
+		while (*src++)
+			;
+	}
+
+	return(src - osrc - 1);	/* count does not include NUL */
+}
+
+/*
+ * Appends src to string dst of size siz (unlike strncat, siz is the
+ * full size of dst, not space left).  At most siz-1 characters
+ * will be copied.  Always NUL terminates (unless siz <= strlen(dst)).
+ * Returns strlen(src) + MIN(siz, strlen(initial dst)).
+ * If retval >= siz, truncation occurred.
+ */
+static size_t
+_pv_strlcat(char *dst, const char *src, size_t siz)
+{
+	char *d = dst;
+	const char *s = src;
+	size_t n = siz;
+	size_t dlen;
+
+	/* Find the end of dst and adjust bytes left but don't go past end */
+	while (n-- != 0 && *d != '\0')
+		d++;
+	dlen = d - dst;
+	n = siz - dlen;
+
+	if (n == 0)
+		return(dlen + strlen(s));
+	while (*s != '\0') {
+		if (n != 1) {
+			*d++ = *s;
+			n--;
+		}
+		s++;
+	}
+	*d = '\0';
+
+	return(dlen + (s - src));	/* count does not include NUL */
+}
 
 /*
  * Find the real name of path, by removing all ".", ".." and symlink
@@ -48,7 +112,7 @@ __FBSDID("$FreeBSD$");
  * in which case the path which caused trouble is left in (resolved).
  */
 char *
-realpath(const char * __restrict path, char * __restrict resolved)
+realpath_x(const char* root, const char * __restrict path, char * __restrict resolved)
 {
 	struct stat sb;
 	char *p, *q, *s;
@@ -56,48 +120,63 @@ realpath(const char * __restrict path, char * __restrict resolved)
 	unsigned symlinks;
 	int m, slen;
 	char left[PATH_MAX], next_token[PATH_MAX], symlink[PATH_MAX];
+	char root_path[PATH_MAX];
+	int base_len;
+	int root_len;
+
+	DEBUG("realpath_x start: root=%s path=%s resolved=%s\n", root_path, path, resolved);
 
 	if (path == NULL) {
 		errno = EINVAL;
-		return (NULL);
+		goto exit_null;
 	}
 	if (path[0] == '\0') {
 		errno = ENOENT;
-		return (NULL);
+		goto exit_null;
 	}
 	if (resolved == NULL) {
 		resolved = malloc(PATH_MAX);
 		if (resolved == NULL)
-			return (NULL);
+			goto exit_null;
 		m = 1;
 	} else
 		m = 0;
+	if (root == NULL) {
+		errno = EINVAL;
+		goto exit_null;
+	}
+	strcpy(root_path, root);
+	root_len = strlen(root_path);
+	if (root_path[root_len -1] != '/') {
+		root_len++;
+		root_path[root_len - 1] = '/';
+		root_path[root_len] = 0;
+	}
 	symlinks = 0;
 	if (path[0] == '/') {
-		resolved[0] = '/';
-		resolved[1] = '\0';
+		resolved = strcpy(resolved, root_path);
 		if (path[1] == '\0')
 			return (resolved);
-		resolved_len = 1;
-		left_len = strlcpy(left, path + 1, sizeof(left));
+		resolved_len = root_len;
+		left_len = _pv_strlcpy(left, path + 1, sizeof(left));
 	} else {
-		if (getcwd(resolved, PATH_MAX) == NULL) {
+		if (!strcpy(resolved, root_path)) {
 			if (m)
 				free(resolved);
 			else {
 				resolved[0] = '.';
 				resolved[1] = '\0';
 			}
-			return (NULL);
+			goto exit_null;
 		}
 		resolved_len = strlen(resolved);
-		left_len = strlcpy(left, path, sizeof(left));
+		left_len = _pv_strlcpy(left, path, sizeof(left));
 	}
 	if (left_len >= sizeof(left) || resolved_len >= PATH_MAX) {
 		if (m)
 			free(resolved);
 		errno = ENAMETOOLONG;
-		return (NULL);
+		goto exit_null;
 	}
 
 	/*
@@ -114,7 +193,7 @@ realpath(const char * __restrict path, char * __restrict resolved)
 			if (m)
 				free(resolved);
 			errno = ENAMETOOLONG;
-			return (NULL);
+			goto exit_null;
 		}
 		memcpy(next_token, left, s - left);
 		next_token[s - left] = '\0';
@@ -126,7 +205,7 @@ realpath(const char * __restrict path, char * __restrict resolved)
 				if (m)
 					free(resolved);
 				errno = ENAMETOOLONG;
-				return (NULL);
+				goto exit_null;
 			}
 			resolved[resolved_len++] = '/';
 			resolved[resolved_len] = '\0';
@@ -142,15 +221,16 @@ realpath(const char * __restrict path, char * __restrict resolved)
 			 * occurrence to not implement lookahead.
 			 */
 			if (lstat(resolved, &sb) != 0) {
-				if (m)
-					free(resolved);
-				return (NULL);
-			}
-			if (!S_ISDIR(sb.st_mode)) {
+				if (0 /* test allow_predict */) {
+					if (m)
+						free(resolved);
+					goto exit_null;
+				}
+			} else if (!S_ISDIR(sb.st_mode)) { /* if predict we dont even try */
 				if (m)
 					free(resolved);
 				errno = ENOTDIR;
-				return (NULL);
+				goto exit_null;
 			}
 			continue;
 		}
@@ -161,7 +241,7 @@ realpath(const char * __restrict path, char * __restrict resolved)
 			 * Strip the last path component except when we have
 			 * single "/"
 			 */
-			if (resolved_len > 1) {
+			if (resolved_len > root_len) {
 				resolved[resolved_len - 1] = '\0';
 				q = strrchr(resolved, '/') + 1;
 				*q = '\0';
@@ -173,36 +253,37 @@ realpath(const char * __restrict path, char * __restrict resolved)
 		/*
 		 * Append the next path component and lstat() it.
 		 */
-		resolved_len = strlcat(resolved, next_token, PATH_MAX);
+		resolved_len = _pv_strlcat(resolved, next_token, PATH_MAX);
 		if (resolved_len >= PATH_MAX) {
 			if (m)
 				free(resolved);
 			errno = ENAMETOOLONG;
-			return (NULL);
+			goto exit_null;
 		}
 		if (lstat(resolved, &sb) != 0) {
-			if (m)
-				free(resolved);
-			return (NULL);
-		}
-		if (S_ISLNK(sb.st_mode)) {
+			if ( 0 /* allow_predict */) {
+				if (m)
+					free(resolved);
+				goto exit_null;
+			}
+		} else if (S_ISLNK(sb.st_mode)) {
 			if (symlinks++ > MAXSYMLINKS) {
 				if (m)
 					free(resolved);
 				errno = ELOOP;
-				return (NULL);
+				goto exit_null;
 			}
 			slen = readlink(resolved, symlink, sizeof(symlink) - 1);
 			if (slen < 0) {
 				if (m)
 					free(resolved);
-				return (NULL);
+				goto exit_null;
 			}
 			symlink[slen] = '\0';
 			if (symlink[0] == '/') {
-				resolved[1] = 0;
-				resolved_len = 1;
-			} else if (resolved_len > 1) {
+				resolved[root_len] = 0;
+				resolved_len = root_len;
+			} else if (resolved_len > root_len) {
 				/* Strip the last path component. */
 				resolved[resolved_len - 1] = '\0';
 				q = strrchr(resolved, '/') + 1;
@@ -221,21 +302,21 @@ realpath(const char * __restrict path, char * __restrict resolved)
 						if (m)
 							free(resolved);
 						errno = ENAMETOOLONG;
-						return (NULL);
+						goto exit_null;
 					}
 					symlink[slen] = '/';
 					symlink[slen + 1] = 0;
 				}
-				left_len = strlcat(symlink, left,
+				left_len = _pv_strlcat(symlink, left,
 				    sizeof(symlink));
 				if (left_len >= sizeof(left)) {
 					if (m)
 						free(resolved);
 					errno = ENAMETOOLONG;
-					return (NULL);
+					goto exit_null;
 				}
 			}
-			left_len = strlcpy(left, symlink, sizeof(left));
+			left_len = _pv_strlcpy(left, symlink, sizeof(left));
 		}
 	}
 
@@ -245,5 +326,9 @@ realpath(const char * __restrict path, char * __restrict resolved)
 	 */
 	if (resolved_len > 1 && resolved[resolved_len - 1] == '/')
 		resolved[resolved_len - 1] = '\0';
+	DEBUG("realpath_x end: path=%s resolved=%s", path, resolved);
 	return (resolved);
+exit_null:
+	INFO("realpath_x end failed!");
+	return (NULL);
 }
