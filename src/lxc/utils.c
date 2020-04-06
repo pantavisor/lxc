@@ -52,6 +52,7 @@
 #include "namespace.h"
 #include "parse.h"
 #include "raw_syscalls.h"
+#include "realpath_x.h"
 #include "syscall_wrappers.h"
 #include "utils.h"
 
@@ -1113,9 +1114,14 @@ out:
 static int open_with_realpath(const char *target, const char *prefix_skip)
 {
 	char realtarget[PATH_MAX], realprefix[PATH_MAX];
+	const char *target_inner = target;
+	realtarget[0] = '\0';
+	realprefix[0] = '\0';
 
+	if (target[0] == '/')
+		target_inner = target + strlen (prefix_skip);
 	// bail if realpath fails
-	if (realpath(target, realtarget) && realpath(prefix_skip, realprefix)) {
+	if (realpath_x(prefix_skip, target_inner, realtarget) && realpath(prefix_skip, realprefix)) {
 		int pl = strlen(realprefix);
 		if (strlen(realtarget) < pl) {
 			ERROR("Absolute symlink as target for mount is not supported yet.");
@@ -1149,6 +1155,8 @@ int safe_mount(const char *src, const char *dest, const char *fstype,
 
 	if (!rootfs)
 		rootfs = "";
+
+	INFO("safe_mount: src=%s dst=%s rootfs=%s", src, dest, rootfs);
 
 	/* todo - allow symlinks for relative paths if 'allowsymlinks' option is passed */
 	if (flags & MS_BIND && src && src[0] != '/') {
