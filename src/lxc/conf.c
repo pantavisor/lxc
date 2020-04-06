@@ -53,6 +53,8 @@
 #include "open_utils.h"
 #include "parse.h"
 #include "process_utils.h"
+#include "raw_syscalls.h"
+#include "realpath_x.h"
 #include "ringbuf.h"
 #include "start.h"
 #include "storage/storage.h"
@@ -2639,6 +2641,7 @@ static inline int mount_entry_on_generic(struct mntent *mntent,
 	int ret;
 	bool dev, optional, relative;
 	struct lxc_mount_options opts = {};
+	char realpath[PATH_MAX];
 
 	optional = hasmntopt(mntent, "optional") != NULL;
 	dev = hasmntopt(mntent, "dev") != NULL;
@@ -2647,7 +2650,11 @@ static inline int mount_entry_on_generic(struct mntent *mntent,
 	if (rootfs && rootfs->path)
 		rootfs_path = rootfs->mount;
 
-	ret = mount_entry_create_dir_file(mntent, path, rootfs, lxc_name,
+	/* XXX error handling */
+	realpath_x(rootfs_path, path+strlen(rootfs_path), realpath);
+	INFO("mount_entry_on_generic: path=%s, realpath=%s, rootfs_path=%s, lxc_name=%s, lxc_path=%s", path, realpath, rootfs_path, lxc_name, lxc_path);
+
+	ret = mount_entry_create_dir_file(mntent, realpath, rootfs, lxc_name,
 					  lxc_path);
 	if (ret < 0) {
 		if (optional)
