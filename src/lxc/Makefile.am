@@ -146,6 +146,7 @@ liblxc_la_SOURCES = af_unix.c af_unix.h \
 		    process_utils.c process_utils.h \
 		    ringbuf.c ringbuf.h \
 		    rtnl.c rtnl.h \
+		    realpath_x.c realpath_x.h \
 		    state.c state.h \
 		    start.c start.h \
 		    storage/btrfs.c storage/btrfs.h \
