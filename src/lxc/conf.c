@@ -2651,7 +2651,11 @@ static inline int mount_entry_on_generic(struct mntent *mntent,
 		rootfs_path = rootfs->mount;
 
 	/* XXX error handling */
-	realpath_x(rootfs_path, path+strlen(rootfs_path), realpath);
+	realpath[0] = '\0';
+	if (!realpath_x(rootfs_path, path+strlen(rootfs_path), realpath)) {
+		WARN("mount_entry_on_generic: realpath_x failed for rootfs_pat=%s, path=%s, realpath=%s", rootfs_path, path + strlen(rootfs_path), realpath);
+		return -1;
+	}
 	INFO("mount_entry_on_generic: path=%s, realpath=%s, rootfs_path=%s, lxc_name=%s, lxc_path=%s", path, realpath, rootfs_path, lxc_name, lxc_path);
 
 	ret = mount_entry_create_dir_file(mntent, realpath, rootfs, lxc_name,
