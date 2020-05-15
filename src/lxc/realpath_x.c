@@ -122,7 +122,7 @@ realpath_x(const char* root, const char * __restrict path, char * __restrict res
 	int base_len;
 	int root_len;
 
-	DEBUG("realpath_x start: root=%s path=%s resolved=%s\n", root_path, path, resolved);
+	DEBUG("realpath_x start: root=%s path=%s resolved=%s\n", root, path, resolved);
 
 	if (path == NULL) {
 		errno = EINVAL;
