@@ -1068,6 +1068,7 @@ static int do_start(void *data)
 	gid_t new_gid;
 	uid_t nsuid = 0;
 	gid_t nsgid = 0;
+	char env[256] = "container=lxc";
 
 	lxc_sync_fini_parent(handler);
 
@@ -1369,10 +1370,13 @@ static int do_start(void *data)
 	if (ret < 0)
 		goto out_warn_father;
 
-	if (handler->conf->type)
+	// dont set container= for pv-platform
+	if (handler->conf->type && strcmp("pv-root", handler->conf->type)) {
 		sprintf(env, "container=%s", handler->conf->type);
-
-	ret = putenv(env); 
+		ret = putenv(env);
+	} else if (!handler->conf->type) {
+		ret = putenv(env);
+	}
 
 	if (ret < 0) {
 		SYSERROR("Failed to set environment variable: container=lxc");
