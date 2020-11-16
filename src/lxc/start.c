@@ -1409,10 +1409,13 @@ static int do_start(void *data)
 		}
 	}
 
-	if (handler->conf->type)
+	// dont set container= for pv-platform
+	if (handler->conf->type && strcmp("pv-root", handler->conf->type)) {
 		sprintf(env, "container=%s", handler->conf->type);
-
-	ret = putenv(env); 
+		ret = putenv(env);
+	} else if (!handler->conf->type) {
+		ret = putenv(env);
+	}
 
 	if (ret < 0) {
 		SYSERROR("Failed to set environment variable: container=lxc");
