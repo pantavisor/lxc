@@ -1412,6 +1412,9 @@ int lxc_chroot(const struct lxc_rootfs *rootfs)
 			if (strcmp(p + 1, "/proc") == 0)
 				continue;
 
+			if (strncmp(p + 1, "/exports", strlen("/exports") * sizeof(char)) == 0)
+				continue;
+
 			ret = umount2(p, MNT_DETACH);
 			if (ret == 0)
 				progress++;
@@ -3342,7 +3345,7 @@ again:
 			continue;
 
 		null_endofword(opts);
-		if (!strstr(opts, "shared"))
+		if (!strstr(opts, "shared") || strstr(target, "exports"))
 			continue;
 
 		null_endofword(target);
