@@ -742,7 +742,7 @@ static char **cg_hybrid_get_controllers(char **klist, char **nlist, char *line,
 	/* Note, if we change how mountinfo works, then our caller will need to
 	 * verify /sys/fs/cgroup/ in this field.
 	 */
-	if (strncmp(p, "/sys/fs/cgroup/", 15) != 0) {
+	if (strncmp(p, "/sys/fs/cgroup", 14) != 0) {
 		ERROR("Found hierarchy not under /sys/fs/cgroup: \"%s\"", p);
 		return NULL;
 	}
