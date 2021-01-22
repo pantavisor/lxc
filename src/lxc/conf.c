@@ -2181,8 +2181,11 @@ static int mount_entry_create_dir_file(const struct mntent *mntent,
 	}
 
 	ret = mknod(path, S_IFREG | 0000, 0);
-	if (ret < 0 && errno != EEXIST)
+	if (ret < 0 && errno != EEXIST) {
+		SYSERROR("Failed to create FILE for create=file mntopt \"%s\"", path);
 		return -errno;
+	}
+	INFO("Created create=file file for mnt: %s", path);
 
 	return 0;
 }
@@ -3664,8 +3667,10 @@ int lxc_setup(struct lxc_handler *handler)
 	}
 
 	ret = lxc_create_ttys(handler);
-	if (ret < 0)
+	if (ret < 0) {
+		WARN("Failed to create new ttys instance");
 		return -1;
+	}
 
 	ret = setup_personality(lxc_conf->personality);
 	if (ret < 0) {
