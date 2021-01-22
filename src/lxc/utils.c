@@ -1118,7 +1118,7 @@ out:
 	return dirfd;
 }
 
-static int open_with_realpath(const char *target, const char *prefix_skip)
+static int open_with_realpath(const char *target, const char *prefix_skip, char **realpath_o)
 {
 	char realtarget[PATH_MAX], realprefix[PATH_MAX];
 	const char *target_inner = target;
@@ -1138,8 +1138,10 @@ static int open_with_realpath(const char *target, const char *prefix_skip)
 			ERROR("target realpath is pointing to outside of realpath rootfs: %s vs %s", realprefix, realtarget);
 			return -1;
 		}
+		*realpath_o = strdup(realtarget);
 		return open_without_symlink(realtarget, realprefix);
 	}
+	*realpath_o = strdup(target);
 	return open_without_symlink(target, prefix_skip);
 }
 
@@ -1159,6 +1161,7 @@ int safe_mount(const char *src, const char *dest, const char *fstype,
 	char srcbuf[50], destbuf[50];
 	int srcfd = -1;
 	const char *mntsrc = src;
+	char *destpath = NULL;
 
 	if (!rootfs)
 		rootfs = "";
@@ -1170,19 +1173,22 @@ int safe_mount(const char *src, const char *dest, const char *fstype,
 		INFO("This is a relative bind mount");
 
 		srcfd = open_without_symlink(src, NULL);
-		if (srcfd < 0)
-			return srcfd;
+		if (srcfd < 0) {
+			ret = srcfd;
+			goto out;
+		}
 
 		ret = snprintf(srcbuf, 50, "/proc/self/fd/%d", srcfd);
 		if (ret < 0 || ret > 50) {
 			close(srcfd);
 			ERROR("Out of memory");
-			return -EINVAL;
+			ret = -EINVAL;
+			goto out;
 		}
 		mntsrc = srcbuf;
 	}
 
-	destfd = open_with_realpath(dest, rootfs);
+	destfd = open_with_realpath(dest, rootfs, &destpath);
 	if (destfd < 0) {
 		if (srcfd != -1) {
 			saved_errno = errno;
@@ -1190,7 +1196,8 @@ int safe_mount(const char *src, const char *dest, const char *fstype,
 			errno = saved_errno;
 		}
 
-		return destfd;
+		ret = destfd;
+		goto out;
 	}
 
 	ret = snprintf(destbuf, 50, "/proc/self/fd/%d", destfd);
@@ -1200,7 +1207,8 @@ int safe_mount(const char *src, const char *dest, const char *fstype,
 
 		close(destfd);
 		ERROR("Out of memory");
-		return -EINVAL;
+		ret = -EINVAL;
+		goto out;
 	}
 
 	ret = mount(mntsrc, destbuf, fstype, flags, data);
@@ -1209,13 +1217,25 @@ int safe_mount(const char *src, const char *dest, const char *fstype,
 		close(srcfd);
 
 	close(destfd);
+
 	if (ret < 0) {
 		errno = saved_errno;
-		SYSERROR("Failed to mount \"%s\" onto \"%s\"", src ? src : "(null)", dest);
-		return ret;
+		SYSINFO("Failed to mount \"%s\" onto \"%s\" with flags: %x and options: \"%s\" trying again with destpath: \"%s\"", mntsrc ? mntsrc : "(null)", destbuf, flags, data, destpath);
+		ret = mount(mntsrc, destpath, fstype, flags, data);
+		saved_errno = errno;
+	}
+	if (ret < 0) {
+		errno = saved_errno;
+		SYSINFO("Failed to mount \"%s\" onto \"%s\" with flags: %x and options: \"%s\" giving up.", mntsrc ? mntsrc : "(null)", destpath, flags, data);
+		ret = mount(mntsrc, destpath, fstype, flags, data);
 	}
 
-	return 0;
+	ret = 0;
+out:
+	if (destpath)
+		free(destpath);
+
+	return ret;
 }
 
 /*
