@@ -819,10 +819,11 @@ static char **split_init_cmd(const char *incmd)
 			continue;
 		} else if (tlen) {
 			tlen += strlen(p);
+			tlen++;
 			t = realloc(t, (tlen+1) * sizeof(char));
 			t = strcat(t, p);
 			if (p[strlen(p)-1] == '\"') {
-				t[tlen-1] = '\0';
+				t[tlen-2] = '\0';
 				push_arg(&argv, t, &nargs);
 				tlen = 0;
 				free(t);
