@@ -787,57 +787,87 @@ static void push_arg(char ***argp, char *arg, int *nargs)
 
 static char **split_init_cmd(const char *incmd)
 {
-	__do_free char *copy = NULL;
-	char *p;
+	enum state {SPACE, ARG, STR, STR_ESC} s = SPACE;
 	size_t len, retlen, tlen = 0;
-	char *t;
+	char *p, *t, *tstart;
 	char **argv;
 	int nargs = 0;
 
 	if (!incmd)
 		return NULL;
 
-	copy = must_copy_string(incmd);
+	len = strlen(incmd) + 1;
+	p = alloca(len);
+	retlen = strlcpy(p, incmd, len);
+	if (retlen >= len)
+		return NULL;
 
 	do {
 		argv = malloc(sizeof(char *));
 	} while (!argv);
 
 	argv[0] = NULL;
-	lxc_iterate_parts(p, copy, " ") {
-		if (p[0] == '\"' && p[strlen(p)-1] == '\"') {
-			t = calloc(1, strlen(p) * sizeof(char));
-			t = strcpy(t, p+1);
-			t[strlen(t)-1] = '\0';
-			push_arg(&argv, t, &nargs);
-		} else if (p[0] == '\"') {
-			tlen += strlen(p);
-			t = realloc(t, (tlen+1) * sizeof(char));
-			t = strcpy(t, p+1);
-			t[tlen-1] = ' ';
-			t[tlen] = '\0';
-			continue;
-		} else if (tlen) {
-			tlen += strlen(p);
-			tlen++;
-			t = realloc(t, (tlen+1) * sizeof(char));
-			t = strcat(t, p);
-			if (p[strlen(p)-1] == '\"') {
-				t[tlen-2] = '\0';
-				push_arg(&argv, t, &nargs);
-				tlen = 0;
-				free(t);
-				continue;
+	while (*p) {
+		switch (s)
+		{
+		case SPACE:
+			if ('\"' == *p) {
+				tstart = p+1;
+				s = STR;
+			} else if (' ' != *p) {
+				tstart = p;
+				s = ARG;
 			}
-			t[tlen-1] = ' ';
-			t[tlen] = '\0';
-			continue;
-		} else {
-			push_arg(&argv, p, &nargs);
+			break;
+		case ARG:
+			if ('\"' == *p) {
+				t = calloc(1, (p - tstart + 1) * sizeof(char));
+				t = memcpy(t, tstart, p - tstart);
+				t[p - tstart] = '\0';
+				push_arg(&argv, t, &nargs);
+				free(t);
+
+				tstart = p+1;
+				s = STR;
+			} else if (' ' == *p) {
+				t = calloc(1, (p - tstart + 1) * sizeof(char));
+				t = memcpy(t, tstart, p - tstart);
+				t[p-tstart] = '\0';
+				push_arg(&argv, t, &nargs);
+				free(t);
+				s = SPACE;
+			}
+			break;
+		case STR:
+			if ('\"' == *p) {
+				t = calloc(1, (p - tstart + 1) * sizeof(char));
+				t = memcpy(t, tstart, p - tstart);
+				t[p-tstart] = '\0';
+				push_arg(&argv, t, &nargs);
+				free(t);
+
+				s = SPACE;
+			} else if ('\\' == *p) {
+				s = STR_ESC;
+			}
+			break;
+		case STR_ESC:
+			if ('\"' == *p || '\\' == *p) {
+				memmove(p-1, p, strlen(p)+1);
+				p--;
+			}
+			s = STR;
+			break;
 		}
+		p++;
 	}
-	if (tlen) {
-		t[tlen-1] = '\0';
+
+	if (SPACE != s) {
+		if (STR == s)
+			tstart--;
+		t = calloc(1, (p - tstart + 1) * sizeof(char));
+		t = memcpy(t, tstart, p - tstart);
+		t[p-tstart] = '\0';
 		push_arg(&argv, t, &nargs);
 		free(t);
 	}
