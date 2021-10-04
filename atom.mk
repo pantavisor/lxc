@@ -4,6 +4,7 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := lxc
 LOCAL_DESCRIPTION := Linux Containers
+LOCAL_CONDITIONAL_LIBRARIES := OPTIONAL:libseccomp
 
 LOCAL_EXPORT_LDLIBS = -l:liblxc.a
 
