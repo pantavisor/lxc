@@ -1,10 +1,11 @@
+
 LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := lxc
 LOCAL_DESCRIPTION := Linux Containers
-LOCAL_CONDITIONAL_LIBRARIES := OPTIONAL:libseccomp OPTIONAL:apparmor
+LOCAL_CONDITIONAL_LIBRARIES := OPTIONAL:libseccomp OPTIONAL:apparmor OPTIONAL:libcap
 
 LOCAL_EXPORT_LDLIBS = -l:liblxc.a
 
