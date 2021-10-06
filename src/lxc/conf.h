@@ -500,6 +500,8 @@ struct lxc_conf {
 	} shmount;
 
 	struct timens_offsets timens;
+
+	char *type;
 };
 
 __hidden extern int write_id_mapping(enum idtype idtype, pid_t pid, const char *buf, size_t buf_size)

@@ -884,6 +884,14 @@ struct lxc_container {
 	 * \return Mount fd of the container's devpts instance.
 	 */
 	int (*devpts_fd)(struct lxc_container *c);
+
+	/* \brief Override 'lxc' container type for environment of pid 1
+	 *
+	 * \param type Type of new container as string
+	 *
+	 * \return \c 0 on success, nonzero on failure.
+	 */
+	bool (*set_container_type)(struct lxc_container *c, char *type);
 };
 
 /*!

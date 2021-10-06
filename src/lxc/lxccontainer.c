@@ -4082,6 +4082,24 @@ static int lxcapi_attach_run_wait(struct lxc_container *c,
 	return ret;
 }
 
+static bool do_lxcapi_set_container_type(struct lxc_container *c, char *type)
+{
+       if (!c)
+               return false;
+
+       current_config = c->lxc_conf;
+
+       if (current_config->type)
+               free(type);
+
+       current_config->type = strdup(type);
+       current_config = NULL;
+
+       return true;
+}
+
+WRAP_API_1(bool, lxcapi_set_container_type, char *)
+
 static int get_next_index(const char *lxcpath, char *cname)
 {
 	__do_free char *fname = NULL;
@@ -5396,7 +5414,8 @@ struct lxc_container *lxc_container_new(const char *name, const char *configpath
 	c->umount = lxcapi_umount;
 	c->seccomp_notify_fd = lxcapi_seccomp_notify_fd;
 	c->seccomp_notify_fd_active = lxcapi_seccomp_notify_fd_active;
-
+	c->set_container_type = lxcapi_set_container_type;
+	
 	return c;
 
 err:

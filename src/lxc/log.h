@@ -31,6 +31,10 @@
 #define LXC_LOG_PREFIX_SIZE 32
 #define LXC_LOG_BUFFER_SIZE 4096
 
+#if defined(__MUSL__) || defined (__GNU_LIBRARY__)
+#define __GNUISH_M_FORMAT__ 1
+#endif
+
 /* predefined lxc log priorities. */
 enum lxc_loglevel {
 	LXC_LOG_LEVEL_TRACE,
@@ -342,6 +346,7 @@ __lxc_unused static inline void LXC_##LEVEL(struct lxc_log_locinfo* locinfo,	\
 		char *ptr = NULL;              						 \
 		{                              						 \
 			ptr = strerror(errno); 						 \
+			ptr = ptr ? ptr: strdup("");
 		}
 #endif
 
@@ -393,7 +398,7 @@ __lxc_unused static inline void LXC_##LEVEL(struct lxc_log_locinfo* locinfo,	\
 	LXC_FATAL(&locinfo, format, ##__VA_ARGS__);			\
 } while (0)
 
-#if defined(__GNU_LIBRARY__) && !ENABLE_COVERITY_BUILD
+#if defined(__GNUISH_M_FORMAT__) && !ENABLE_COVERITY_BUILD
 #define SYSTRACE(format, ...)                              \
 		TRACE("%m - " format, ##__VA_ARGS__)
 #else
@@ -404,7 +409,7 @@ __lxc_unused static inline void LXC_##LEVEL(struct lxc_log_locinfo* locinfo,	\
 	} while (0)
 #endif
 
-#if defined(__GNU_LIBRARY__) && !ENABLE_COVERITY_BUILD
+#if defined(__GNUISH_M_FORMAT__) && !ENABLE_COVERITY_BUILD
 #define SYSDEBUG(format, ...)                              \
                 DEBUG("%m - " format, ##__VA_ARGS__)
 #else
@@ -416,7 +421,7 @@ __lxc_unused static inline void LXC_##LEVEL(struct lxc_log_locinfo* locinfo,	\
 #endif
 
 
-#if defined(__GNU_LIBRARY__) && !ENABLE_COVERITY_BUILD
+#if defined(__GNUISH_M_FORMAT__) && !ENABLE_COVERITY_BUILD
 #define SYSINFO(format, ...)                              \
                 INFO("%m - " format, ##__VA_ARGS__)
 #else
@@ -427,7 +432,7 @@ __lxc_unused static inline void LXC_##LEVEL(struct lxc_log_locinfo* locinfo,	\
 	} while (0)
 #endif
 
-#if defined(__GNU_LIBRARY__) && !ENABLE_COVERITY_BUILD
+#if defined(__GNUISH_M_FORMAT__) && !ENABLE_COVERITY_BUILD
 #define SYSNOTICE(format, ...)                              \
 		NOTICE("%m - " format, ##__VA_ARGS__)
 #else
@@ -438,7 +443,7 @@ __lxc_unused static inline void LXC_##LEVEL(struct lxc_log_locinfo* locinfo,	\
 	} while (0)
 #endif
 
-#if defined(__GNU_LIBRARY__) && !ENABLE_COVERITY_BUILD
+#if defined(__GNUISH_M_FORMAT__) && !ENABLE_COVERITY_BUILD
 #define SYSWARN(format, ...)                              \
 		WARN("%m - " format, ##__VA_ARGS__)
 #else
@@ -449,18 +454,18 @@ __lxc_unused static inline void LXC_##LEVEL(struct lxc_log_locinfo* locinfo,	\
 	} while (0)
 #endif
 
-#if defined(__GNU_LIBRARY__) && !ENABLE_COVERITY_BUILD
+#if defined(__GNUISH_M_FORMAT__) && !ENABLE_COVERITY_BUILD
 #define SYSERROR(format, ...)                              \
 		ERROR("%m - " format, ##__VA_ARGS__)
 #else
 #define SYSERROR(format, ...)                              \
 	do {                                               \
 		lxc_log_strerror_r;                        \
-		ERROR("%s - " format, ptr, ##__VA_ARGS__); \
+		ERROR("%p - " format, ptr, ##__VA_ARGS__); \
 	} while (0)
 #endif
 
-#if defined(__GNU_LIBRARY__) && !ENABLE_COVERITY_BUILD
+#if defined(__GNUISH_M_FORMAT__) && !ENABLE_COVERITY_BUILD
 #define CMD_SYSERROR(format, ...)                                             \
 	fprintf(stderr, "%s: %d: %s - %m - " format "\n", __FILE__, __LINE__, \
 		__func__, ##__VA_ARGS__);
@@ -473,7 +478,7 @@ __lxc_unused static inline void LXC_##LEVEL(struct lxc_log_locinfo* locinfo,	\
 	} while (0)
 #endif
 
-#if defined(__GNU_LIBRARY__) && !ENABLE_COVERITY_BUILD
+#if defined(__GNUISH_M_FORMAT__) && !ENABLE_COVERITY_BUILD
 #define CMD_SYSINFO(format, ...)                                               \
 	printf("%s: %d: %s - %m - " format "\n", __FILE__, __LINE__, __func__, \
 	       ##__VA_ARGS__);
