@@ -85,6 +85,8 @@ static const char *get_action_name(uint32_t action)
 		return "allow";
 	case SCMP_ACT_TRAP:
 		return "trap";
+	case SCMP_ACT_LOG:
+		return "log";
 	case SCMP_ACT_ERRNO(0):
 		return "errno";
 	}
@@ -114,6 +116,8 @@ static uint32_t get_v2_default_action(char *line)
 		ret_action = SCMP_ACT_ERRNO(e);
 	} else if (strncmp(line, "allow", 5) == 0) {
 		ret_action = SCMP_ACT_ALLOW;
+	} else if (strncmp(line, "log", 3) == 0) {
+		ret_action = SCMP_ACT_LOG;
 	} else if (strncmp(line, "trap", 4) == 0) {
 		ret_action = SCMP_ACT_TRAP;
 	} else if (line[0]) {
