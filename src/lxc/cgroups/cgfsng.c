@@ -564,7 +564,7 @@ __cgfsng_ops static void cgfsng_payload_destroy(struct cgroup_ops *ops,
 static bool cpuset1_cpus_initialize(int dfd_parent, int dfd_child,
 				    bool am_initialized)
 {
-	__do_free char *cpulist = NULL, *fpath = NULL, *isolcpus = NULL,
+	__do_free char *cpulist = NULL, *isolcpus = NULL,
 		       *offlinecpus = NULL, *posscpus = NULL;
 	__do_free uint32_t *isolmask = NULL, *offlinemask = NULL,
 			   *possmask = NULL;
@@ -575,7 +575,7 @@ static bool cpuset1_cpus_initialize(int dfd_parent, int dfd_child,
 
 	posscpus = read_file_at(dfd_parent, "cpuset.cpus", PROTECT_OPEN, 0);
 	if (!posscpus)
-		return log_error_errno(false, errno, "Failed to read file \"%s\"", fpath);
+		return log_error_errno(false, errno, "Failed to read file %d/cpuset.cpus", dfd_parent);
 
 	/* Get maximum number of cpus found in possible cpuset. */
 	maxposs = get_max_cpus(posscpus);
