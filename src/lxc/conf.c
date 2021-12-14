@@ -3472,9 +3472,18 @@ static bool verify_start_hooks(struct lxc_conf *conf)
 		int ret;
 		char *hookname = it->elem;
 
+		char *cmdend = strchr (hookname, ' ');
+		char sav;
+		if (cmdend) {
+			sav = *cmdend;
+			*cmdend = 0;
+		}
 		ret = snprintf(path, PATH_MAX, "%s%s",
 			       conf->rootfs.path ? conf->rootfs.mount : "",
 			       hookname);
+		if (cmdend)
+			*cmdend = sav;
+
 		if (ret < 0 || ret >= PATH_MAX)
 			return false;
 
