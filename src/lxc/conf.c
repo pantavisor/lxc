@@ -4213,10 +4213,6 @@ static int lxc_send_console_to_parent(struct lxc_handler *handler)
 	if (!wants_console(console))
 		return 0;
 
-	/* We've already allocated a console from the host's devpts instance. */
-	if (console->pty < 0)
-		return 0;
-
 	ret = __lxc_abstract_unix_send_two_fds(handler->data_sock[0],
 					       console->ptx, console->pty,
 					       console,
