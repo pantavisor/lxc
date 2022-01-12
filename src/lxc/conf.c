@@ -3466,6 +3466,8 @@ int lxc_setup_rootfs_prepare_root(struct lxc_conf *conf, const char *name,
 static bool verify_start_hooks(struct lxc_conf *conf)
 {
 	char path[PATH_MAX];
+	char realpath[PATH_MAX];
+
 	struct lxc_list *it;
 
 	lxc_list_for_each (it, &conf->hooks[LXCHOOK_START]) {
@@ -3487,10 +3489,17 @@ static bool verify_start_hooks(struct lxc_conf *conf)
 		if (ret < 0 || ret >= PATH_MAX)
 			return false;
 
-		ret = access(path, X_OK);
+		/* XXX error handling */
+		realpath[0] = '\0';
+		if (!realpath_x(conf->rootfs.mount, path+strlen(conf->rootfs.mount), realpath)) {
+			SYSERROR("mount_entry_on_generic: realpath_x failed for rootfs_pat=%s, path=%s, realpath=%s", conf->rootfs.mount, path + strlen(conf->rootfs.mount), realpath);
+			return false;
+		}
+
+		ret = access(realpath, X_OK);
 		if (ret < 0) {
 			SYSERROR("Start hook \"%s\" not found in container",
-				 hookname);
+				 realpath);
 			return false;
 		}
 
