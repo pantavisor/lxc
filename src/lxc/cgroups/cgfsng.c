@@ -2143,7 +2143,7 @@ static int cgroup_attach_leaf(int unified_fd, int64_t pid)
 		char *slash;
 
 		sprintf(attach_cgroup, "lxc-%d/cgroup.procs", idx);
-		slash = &attach_cgroup[ret] - STRLITERALLEN("/cgroup.procs");
+		slash = attach_cgroup + ret - STRLITERALLEN("/cgroup.procs");
 		*slash = '\0';
 
 		ret = mkdirat(unified_fd, attach_cgroup, 0755);
