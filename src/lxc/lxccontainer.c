@@ -743,7 +743,6 @@ static char **split_init_cmd(const char *incmd)
 	enum state {SPACE, ARG, STR, STR_ESC} s = SPACE;
 	size_t len, retlen, tlen = 0;
 	char *p, *t, *tstart;
-	size_t len, retlen;
 	char **argv;
 	int nargs = 0;
 

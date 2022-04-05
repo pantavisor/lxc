@@ -1116,6 +1116,7 @@ static int do_start(void *data)
 	uid_t nsuid = 0;
 	gid_t nsgid = 0;
 	int devnull_fd = -1;
+	char env[256] = "container=lxc";
 
 	lxc_sync_fini_parent(handler);
 
