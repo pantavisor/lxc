@@ -2645,21 +2645,24 @@ static inline int mount_entry_on_generic(struct mntent *mntent,
 	bool dev, optional, relative;
 	struct lxc_mount_options opts = {};
 	char realpath[PATH_MAX];
+	size_t rootfs_offset = 0;
 
 	optional = hasmntopt(mntent, "optional") != NULL;
 	dev = hasmntopt(mntent, "dev") != NULL;
 	relative = hasmntopt(mntent, "relative") != NULL;
 
-	if (rootfs && rootfs->path)
+	if (rootfs && rootfs->path) {
 		rootfs_path = rootfs->mount;
+		rootfs_offset = strlen(rootfs_path);
+	}
 
 	/* XXX error handling */
 	realpath[0] = '\0';
-	if (!realpath_x(rootfs_path, path+strlen(rootfs_path), realpath)) {
-		WARN("mount_entry_on_generic: realpath_x failed for rootfs_pat=%s, path=%s, realpath=%s", rootfs_path, path + strlen(rootfs_path), realpath);
+	if (!realpath_x(rootfs_path, path + rootfs_offset, realpath)) {
+		WARN("mount_entry_on_generic: realpath_x failed for rootfs_path=%s, path=%s, realpath=%s", rootfs_path ? rootfs_path: "", path + rootfs_offset, realpath);
 		return -1;
 	}
-	INFO("mount_entry_on_generic: path=%s, realpath=%s, rootfs_path=%s, lxc_name=%s, lxc_path=%s", path, realpath, rootfs_path, lxc_name, lxc_path);
+	INFO("mount_entry_on_generic: path=%s, realpath=%s, rootfs_path=%s, lxc_name=%s, lxc_path=%s", path, realpath, rootfs_path ? rootfs_path : "", lxc_name ? lxc_name: "", lxc_path ? lxc_path: "");
 
 	ret = mount_entry_create_dir_file(mntent, realpath, rootfs, lxc_name,
 					  lxc_path);
