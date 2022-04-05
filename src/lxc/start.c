@@ -1109,7 +1109,8 @@ static int do_start(void *data)
 	 * exit before we set the pdeath signal leading to a unsupervized
 	 * container.
 	 */
-	ret = lxc_set_death_signal(SIGKILL, 0);
+	ret = lxc_set_death_signal(SIGKILL,
+		handler->ns_clone_flags & CLONE_NEWPID ? 0 : handler->monitor_pid);
 	if (ret < 0) {
 		SYSERROR("Failed to set PR_SET_PDEATHSIG to SIGKILL");
 		goto out_warn_father;
@@ -1683,6 +1684,7 @@ static int lxc_spawn(struct lxc_handler *handler)
 	}
 	/* The cgroup namespace gets unshare()ed not clone()ed. */
 	handler->ns_on_clone_flags &= ~CLONE_NEWCGROUP;
+	handler->monitor_pid = lxc_raw_getpid();
 
 	if (share_ns) {
 		pid_t attacher_pid;
