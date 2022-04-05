@@ -10,7 +10,7 @@
 #include "macro.h"
 
 #define DEFAULT_CGROUP_MOUNTPOINT "/sys/fs/cgroup"
-#define DEFAULT_PAYLOAD_CGROUP_PREFIX "lxc.payload."
+#define DEFAULT_PAYLOAD_CGROUP_PREFIX "lxc/"
 #define DEFAULT_MONITOR_CGROUP_PREFIX "lxc.monitor."
 #define DEFAULT_PAYLOAD_CGROUP "payload"
 #define DEFAULT_MONITOR_CGROUP "monitor"
