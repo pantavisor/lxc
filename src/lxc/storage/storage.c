@@ -654,9 +654,21 @@ bool rootfs_is_blockdev(struct lxc_conf *conf)
 	struct stat st;
 	int ret;
 
+	DEBUG("rootfs_is_blockdev: %s, %s, %s",
+		conf->rootfs.bdev_type ? conf->rootfs.bdev_type : "NULL",
+		conf->rootfs.path ? conf->rootfs.path : "NULL",
+		conf->rootfs.mount ? conf->rootfs.mount : "NULL");
+
 	if (!conf->rootfs.path || strcmp(conf->rootfs.path, "/") == 0 ||
 	    strlen(conf->rootfs.path) == 0)
 		return false;
+
+
+	if (conf->rootfs.bdev_type && !strcmp(conf->rootfs.bdev_type, "overlay"))
+		return true;
+
+	if (conf->rootfs.bdev_type && !strcmp(conf->rootfs.bdev_type, "overlayfs"))
+		return true;
 
 	ret = stat(conf->rootfs.path, &st);
 	if (ret == 0 && S_ISBLK(st.st_mode))
