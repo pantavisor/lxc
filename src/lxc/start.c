@@ -284,7 +284,7 @@ restart:
 			if (fds_to_ignore[i] == fd)
 				break;
 
-		if (fd == fddir || fd == lxc_log_fd ||
+		if (fd == fddir || fd == lxc_log_fd || fd == lxc_log_out_fd ||
 		    (i < len_fds && fd == fds_to_ignore[i]))
 			continue;
 

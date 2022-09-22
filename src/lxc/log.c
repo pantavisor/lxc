@@ -45,6 +45,8 @@ int lxc_log_fd = -EBADF;
 static bool wants_syslog = false;
 static int lxc_quiet_specified;
 bool lxc_log_use_global_fd = false;
+static int syslog_enable = 0;
+int lxc_quiet_specified;
 static int lxc_loglevel_specified;
 
 static char log_prefix[LXC_LOG_PREFIX_SIZE] = "lxc";
@@ -317,8 +319,8 @@ static int lxc_unix_epoch_to_utc(char *buf, size_t bufsize, const struct timespe
  * themselves. Our logging is mostly done for debugging purposes so don't try
  * to make it pretty. Pretty might cost you thread-safety.
  */
-static int log_append_logfile(const struct lxc_log_appender *appender,
-			      struct lxc_log_event *event)
+
+static int log_write_to_fd(struct lxc_log_event *event, int fd)
 {
 	int fd_to_use = -EBADF;
 	char buffer[LXC_LOG_BUFFER_SIZE];
@@ -377,7 +379,35 @@ static int log_append_logfile(const struct lxc_log_appender *appender,
 
 	buffer[n] = '\n';
 
-	return lxc_write_nointr(fd_to_use, buffer, n + 1);
+	return lxc_write_nointr(fd, buffer, n + 1);
+}
+
+static int log_append_out_fd(const struct lxc_log_appender *appender,
+			   struct lxc_log_event *event)
+{
+	if (lxc_log_out_fd < 0)
+		return 0;
+
+	return log_write_to_fd(event, lxc_log_out_fd);
+}
+
+static int log_append_logfile(const struct lxc_log_appender *appender,
+			      struct lxc_log_event *event)
+{
+	int fd_to_use = -1;
+
+#ifndef NO_LXC_CONF
+	if (current_config)
+		if (!lxc_log_use_global_fd)
+			fd_to_use = current_config->logfd;
+#endif
+	if (fd_to_use == -1)
+		fd_to_use = lxc_log_fd;
+
+	if (fd_to_use == -1)
+		return 0;
+
+	return log_write_to_fd(event, fd_to_use);
 }
 
 #if HAVE_DLOG
@@ -448,6 +478,12 @@ static struct lxc_log_appender log_appender_stderr = {
 static struct lxc_log_appender log_appender_logfile = {
 	.name		= "logfile",
 	.append		= log_append_logfile,
+	.next		= NULL,
+};
+
+static struct lxc_log_appender log_appender_out_fd = {
+	.name		= "pipe",
+	.append		= log_append_out_fd,
 	.next		= NULL,
 };
 
@@ -689,12 +725,8 @@ int lxc_log_init(struct lxc_log *log)
 		if (ret < 0)
 			return log_error_errno(-1, errno, "Failed to enable logfile");
 
-		lxc_log_use_global_fd = true;
-	} else {
-		/* if no name was specified, there nothing to do */
-		if (!log->name)
-			return 0;
-
+		lxc_log_use_global_fd = 1;
+	} else if (log->name) {
 		ret = -1;
 
 		if (!log->lxcpath)
@@ -718,7 +750,7 @@ int lxc_log_init(struct lxc_log *log)
 	 * ignore failures and continue logging to console
 	 */
 	if (!log->file && ret != 0) {
-		INFO("Ignoring failure to open default logfile");
+		INFO("No logfile open");
 		ret = 0;
 	}
 
@@ -730,6 +762,27 @@ int lxc_log_init(struct lxc_log *log)
 	return ret;
 }
 
+int lxc_log_set_alternative_output(int fd)
+{
+	if (fd < -1)
+		return -1;
+
+	lxc_log_out_fd = fcntl(fd, F_DUPFD_CLOEXEC, STDERR_FILENO);
+
+	if (lxc_log_out_fd == -1)
+		return -1;
+
+	close(fd);
+	fd = -1;
+
+	struct lxc_log_appender *p = lxc_log_category_lxc.appender;
+	while (p->next)
+		p = p->next;
+
+	p->next = &log_appender_out_fd;
+	return 0;
+}
+
 void lxc_log_close(void)
 {
 	closelog();
@@ -737,6 +790,14 @@ void lxc_log_close(void)
 	free_disarm(log_vmname);
 
 	close_prot_errno_disarm(lxc_log_fd);
+
+	if (lxc_log_out_fd > -1) {
+		close(lxc_log_out_fd);
+		lxc_log_out_fd = -1;
+	}
+
+	if (lxc_log_fd == -1)
+		return;
 
 	free_disarm(log_fname);
 }
