@@ -1092,6 +1092,13 @@ struct lxc_log {
 int lxc_log_init(struct lxc_log *log);
 
 /*!
+ * \brief set a file descriptor to be used as alternative output
+ *
+ * \param fd file descriptor to write the output.
+ */
+int lxc_log_set_alternative_output(int fd);
+
+/*!
  * \brief Close log file.
  */
 void lxc_log_close(void);
