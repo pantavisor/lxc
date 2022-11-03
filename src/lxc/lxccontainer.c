@@ -5155,6 +5155,12 @@ struct lxc_container *lxc_container_new(const char *name, const char *configpath
 		goto err;
 	}
 
+	// In Pantavisor final configs are never put to disk so we cannot find them...
+	if (!c->lxc_conf) {
+		c->lxc_conf = lxc_conf_init();
+		fprintf(stderr, "No lxc conf found, using the default init config: %s\n", c->configfile);
+	}
+
 	rc = ongoing_create(c);
 	switch (rc) {
 	case LXC_CREATE_INCOMPLETE:
