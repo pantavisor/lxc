@@ -159,7 +159,7 @@ static int stdin_tios_rows(void)
 {
 	struct winsize wsz;
 
-	if (isatty(0) && ioctl(0, TIOCGWINSZ, &wsz) == 0)
+	if (isatty(0) && ioctl(0, TIOCGWINSZ, &wsz) == 0 && wsz.ws_row > 10)
 		return wsz.ws_row;
 
 	return 25;
