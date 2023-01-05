@@ -2074,6 +2074,8 @@ static void cull_mntent_opt(struct mntent *mntent)
 	char *list[] = {
 		"create=dir",
 		"create=file",
+		"origin=mkdir",
+		"origin=mkfile",
 		"optional",
 		"relative",
 		NULL
@@ -2171,6 +2173,28 @@ static inline int mount_entry_on_generic(struct mntent *mntent,
 		rootfs_path = rootfs->mount;
 		rootfs_offset = strlen(rootfs_path);
 	}
+
+	if (hasmntopt(mntent, "origin=mkdir")) {
+		char *mkpath = malloc(sizeof(char) * (strlen(mntent->mnt_fsname) + rootfs_offset + 2));
+		if (relative)
+			sprintf(mkpath, "%s/%s", rootfs_path, mntent->mnt_fsname);
+		else
+			sprintf(mkpath, "%s", mntent->mnt_fsname);
+
+		ret = mkdir_p(mkpath, 0755);
+		if (ret < 0 && errno != EEXIST) {
+			SYSERROR("Failed to create origin=mkdir requested directory \"%s\"", mkpath);
+			free(mkpath);
+			return -1;
+		}
+		if (!ret)
+			INFO("mount source directory created through origin=mkdir mountopt %s -> %s", mkpath, mntent->mnt_dir);
+		free(mkpath);
+	} else if (hasmntopt(mntent, "origin=mkfile")) {
+		SYSERROR("mount option origin=mkfile NOTIMPLEMENTED. Contributions welcome!");
+		return -1;
+	}
+
 
 	/* XXX error handling */
 	realpath[0] = '\0';
