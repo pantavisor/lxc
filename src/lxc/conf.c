@@ -2544,6 +2544,13 @@ int parse_lxc_mount_attrs(struct lxc_mount_options *opts, char *mnt_opts)
 		case LXC_MOUNT_CREATE_FILE:
 			opts->create_file = 1;
 			break;
+		case LXC_MOUNT_ORIGIN_MKDIR:
+			opts->origin_mkdir = 1;
+			break;
+		case LXC_MOUNT_ORIGIN_MKFILE:
+			opts->origin_mkfile = 1;
+			break;
+
 		case LXC_MOUNT_OPTIONAL:
 			opts->optional = 1;
 			break;
@@ -2655,6 +2662,28 @@ static inline int mount_entry_on_generic(struct mntent *mntent,
 		rootfs_path = rootfs->mount;
 		rootfs_offset = strlen(rootfs_path);
 	}
+
+	if (hasmntopt(mntent, "origin=mkdir")) {
+		char *mkpath = malloc(sizeof(char) * (strlen(mntent->mnt_fsname) + rootfs_offset + 2));
+		if (relative)
+			sprintf(mkpath, "%s/%s", rootfs_path, mntent->mnt_fsname);
+		else
+			sprintf(mkpath, "%s", mntent->mnt_fsname);
+
+		ret = mkdir_p(mkpath, 0755);
+		if (ret < 0 && errno != EEXIST) {
+			SYSERROR("Failed to create origin=mkdir requested directory \"%s\"", mkpath);
+			free(mkpath);
+			return -1;
+		}
+		if (!ret)
+			INFO("mount source directory created through origin=mkdir mountopt %s -> %s", mkpath, mntent->mnt_dir);
+		free(mkpath);
+	} else if (hasmntopt(mntent, "origin=mkfile")) {
+		SYSERROR("mount option origin=mkfile NOTIMPLEMENTED. Contributions welcome!");
+		return -1;
+	}
+
 
 	/* XXX error handling */
 	realpath[0] = '\0';
