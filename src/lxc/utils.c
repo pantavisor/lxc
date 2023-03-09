@@ -36,6 +36,7 @@
 #include "namespace.h"
 #include "parse.h"
 #include "process_utils.h"
+#include "realpath_x.h"
 #include "syscall_wrappers.h"
 #include "utils.h"
 
@@ -407,6 +408,13 @@ struct lxc_popen_FILE *lxc_popen(const char *command)
 		sigset_t mask;
 
 		close(pipe_fds[0]);
+
+		/*
+		 * set a separate process group for hook and its children
+		 * in order to prevent accidental reaping when lxc is used
+		 * as a library instead of standalone commands
+		 */
+		setpgrp();
 
 		/* duplicate stdout */
 		if (pipe_fds[1] != STDOUT_FILENO)
@@ -1070,6 +1078,31 @@ out:
 	return dirfd;
 }
 
+static int open_with_realpath(const char *target, const char *prefix_skip)
+{
+	char realtarget[PATH_MAX], realprefix[PATH_MAX];
+	const char *target_inner = target;
+	realtarget[0] = '\0';
+	realprefix[0] = '\0';
+
+	if (target[0] == '/')
+		target_inner = target + strlen (prefix_skip);
+	// bail if realpath fails
+	if (realpath_x(prefix_skip, target_inner, realtarget) && realpath(prefix_skip, realprefix)) {
+		int pl = strlen(realprefix);
+		if (strlen(realtarget) < pl) {
+			ERROR("Absolute symlink as target for mount is not supported yet.");
+			return -1;
+		}
+		if(strncmp(realprefix, realtarget, pl)) {
+			ERROR("target realpath is pointing to outside of realpath rootfs: %s vs %s", realprefix, realtarget);
+			return -1;
+		}
+		return open_without_symlink(realtarget, realprefix);
+	}
+	return open_without_symlink(target, prefix_skip);
+}
+
 int __safe_mount_beneath_at(int beneath_fd, const char *src, const char *dst, const char *fstype,
 			    unsigned int flags, const void *data)
 {
@@ -1149,6 +1182,8 @@ int safe_mount(const char *src, const char *dest, const char *fstype,
 	if (!rootfs)
 		rootfs = "";
 
+	INFO("safe_mount: src=%s dst=%s rootfs=%s", src, dest, rootfs);
+
 	/* todo - allow symlinks for relative paths if 'allowsymlinks' option is passed */
 	if (flags & MS_BIND && src && src[0] != '/') {
 		INFO("This is a relative bind mount");
@@ -1166,7 +1201,7 @@ int safe_mount(const char *src, const char *dest, const char *fstype,
 		mntsrc = srcbuf;
 	}
 
-	destfd = open_without_symlink(dest, rootfs);
+	destfd = open_with_realpath(dest, rootfs);
 	if (destfd < 0) {
 		if (srcfd != -1) {
 			saved_errno = errno;

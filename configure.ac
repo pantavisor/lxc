@@ -494,8 +494,6 @@ if test "x$enable_fuzzers" = "xyes"; then
 		CC_CHECK_FLAGS_APPEND([AM_CFLAGS],[CFLAGS],[ \
 			-DRUN_ON_OSS_FUZZ=1])
 	fi
-else
-	CC_CHECK_FLAGS_APPEND([AM_CFLAGS],[CFLAGS],[-flto=thin])
 fi
 AC_SUBST(AM_CFLAGS)
 
@@ -784,7 +782,7 @@ LXC_CHECK_TLS
 
 # Hardening flags
 CC_CHECK_FLAGS_APPEND([AM_CFLAGS],[CFLAGS],[ \
-	-fPIE \
+	-fPIC \
 	-Wvla \
 	-std=gnu11 \
 	-fms-extensions \
@@ -832,7 +830,6 @@ CC_CHECK_FLAGS_APPEND([AM_LDFLAGS],[LDFLAGS],[ \
         -Wl,--gc-sections \
         -Wl,-z,relro \
         -Wl,-z,now \
-        -pie \
         -Wl,-fuse-ld=gold])
 
 AM_COND_IF([ENABLE_NO_UNDEFINED],

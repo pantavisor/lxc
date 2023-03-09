@@ -53,6 +53,7 @@
 #include "network.h"
 #include "parse.h"
 #include "process_utils.h"
+#include "realpath_x.h"
 #include "ringbuf.h"
 #include "start.h"
 #include "storage/storage.h"
@@ -1468,6 +1469,9 @@ static int lxc_chroot(const struct lxc_rootfs *rootfs)
 			if (strequal(slider1 + 1, "/proc"))
 				continue;
 
+			if (strequal(slider1 + 1, "/exports"))
+				continue;
+
 			ret = umount2(slider1, MNT_DETACH);
 			if (ret == 0)
 				progress++;
@@ -2185,6 +2189,8 @@ skipremount:
 const char *lxc_mount_options_info[LXC_MOUNT_MAX] = {
 	"create=dir",
 	"create=file",
+	"origin=mkdir",
+	"origin=mkfile",
 	"optional",
 	"relative",
 	"idmap=",
@@ -2239,6 +2245,9 @@ int parse_lxc_mntopts(struct lxc_mount_options *opts, char *mnt_opts)
 			}
 
 			TRACE("Parse LXC specific mount option %d->\"idmap=%s\"", fd_userns, opts->userns_path);
+			break;
+		case LXC_MOUNT_ORIGIN_MKDIR:
+		case LXC_MOUNT_ORIGIN_MKFILE:
 			break;
 		default:
 			return syserror_set(-EINVAL, "Unknown LXC specific mount option");
@@ -2310,6 +2319,8 @@ static inline int mount_entry_on_generic(struct mntent *mntent,
 	__do_free char *mntdata = NULL;
 	unsigned long mntflags = 0, pflags = 0;
 	char *rootfs_path = NULL;
+	char realpath[PATH_MAX];
+	size_t rootfs_offset = 0;
 	int ret;
 	bool dev, optional, relative;
 	struct lxc_mount_options opts = {};
@@ -2318,10 +2329,41 @@ static inline int mount_entry_on_generic(struct mntent *mntent,
 	dev = hasmntopt(mntent, "dev") != NULL;
 	relative = hasmntopt(mntent, "relative") != NULL;
 
-	if (rootfs && rootfs->path)
+	if (rootfs && rootfs->path) {
 		rootfs_path = rootfs->mount;
+		rootfs_offset = strlen(rootfs_path);
+	}
 
-	ret = mount_entry_create_dir_file(mntent, path, rootfs, lxc_name,
+	if (hasmntopt(mntent, "origin=mkdir")) {
+		char *mkpath = malloc(sizeof(char) * (strlen(mntent->mnt_fsname) + rootfs_offset + 2));
+		if (relative)
+			sprintf(mkpath, "%s/%s", rootfs_path, mntent->mnt_fsname);
+		else
+			sprintf(mkpath, "%s", mntent->mnt_fsname);
+
+		ret = mkdir_p(mkpath, 0755);
+		if (ret < 0 && errno != EEXIST) {
+			SYSERROR("Failed to create origin=mkdir requested directory \"%s\"", mkpath);
+			free(mkpath);
+			return -1;
+		}
+		if (!ret)
+			INFO("mount source directory created through origin=mkdir mountopt %s -> %s", mkpath, mntent->mnt_dir);
+		free(mkpath);
+	} else if (hasmntopt(mntent, "origin=mkfile")) {
+		SYSERROR("mount option origin=mkfile NOTIMPLEMENTED. Contributions welcome!");
+		return -1;
+	}
+
+	/* XXX error handling */
+	realpath[0] = '\0';
+	if (!realpath_x(rootfs_path, path + rootfs_offset, realpath)) {
+		WARN("mount_entry_on_generic: realpath_x failed for rootfs_path=%s, path=%s, realpath=%s", rootfs_path ? rootfs_path: "", path + rootfs_offset, realpath);
+		return -1;
+	}
+	INFO("mount_entry_on_generic: path=%s, realpath=%s, rootfs_path=%s, lxc_name=%s, lxc_path=%s", path, realpath, rootfs_path ? rootfs_path : "", lxc_name ? lxc_name: "", lxc_path ? lxc_path: "");
+
+	ret = mount_entry_create_dir_file(mntent, realpath, rootfs, lxc_name,
 					  lxc_path);
 	if (ret < 0) {
 		if (optional)
@@ -3331,7 +3373,7 @@ static void turn_into_dependent_mounts(const struct lxc_rootfs *rootfs)
 			continue;
 
 		null_endofword(opts);
-		if (!strstr(opts, "shared"))
+		if (!strstr(opts, "shared") || strstr(target, "exports"))
 			continue;
 
 		null_endofword(target);
@@ -3449,9 +3491,18 @@ static bool verify_start_hooks(struct lxc_conf *conf)
 		int ret;
 		char *hookname = it->elem;
 
+		char *cmdend = strchr (hookname, ' ');
+		char sav;
+		if (cmdend) {
+			sav = *cmdend;
+			*cmdend = 0;
+		}
 		ret = strnprintf(path, sizeof(path), "%s%s",
 			       conf->rootfs.path ? conf->rootfs.mount : "",
 			       hookname);
+		if (cmdend)
+			*cmdend = sav;
+
 		if (ret < 0)
 			return false;
 
@@ -4177,6 +4228,8 @@ void lxc_conf_free(struct lxc_conf *conf)
 	free(conf->cgroup_meta.controllers);
 	free(conf->shmount.path_host);
 	free(conf->shmount.path_cont);
+	if (conf->type)
+		free(conf->type);
 	free(conf);
 }
 

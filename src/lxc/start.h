@@ -16,6 +16,9 @@
 #include "macro.h"
 #include "namespace.h"
 #include "state.h"
+#include <lxc/lxccontainer.h>
+
+struct lxc_conf;
 
 struct lxc_handler {
 	/* Record the clone for namespaces flags that the container requested.
