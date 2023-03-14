@@ -834,16 +834,6 @@ struct lxc_container {
 	 */
 	bool (*reboot2)(struct lxc_container *c, int timeout);
 
-	/*
-	 * \brief Allow inheriting special namespaces via an API call
-	 *
-	 * \param pid PID from which to inherit a given namespace
-	 * \param namespaces Bitmask of namespaces to inherit, conforming to LXC_NS_MAX
-	 *
-	 * \return \c 0 on success, nonzero on failure.
-	 */
-	bool (*set_inherit_namespaces)(struct lxc_container *c, int pid, unsigned short namespaces);
-
 	/*!
 	 * \brief Override 'lxc' container type for environment of pid 1
 	 *

@@ -2,7 +2,6 @@
 
 pkginclude_HEADERS = attach_options.h \
 		     lxccontainer.h \
-		     pv_export.h \
 		     version.h
 
 noinst_HEADERS = api_extensions.h \
