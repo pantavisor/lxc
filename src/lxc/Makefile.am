@@ -142,6 +142,7 @@ liblxc_la_SOURCES = af_unix.c af_unix.h \
 		    process_utils.c process_utils.h \
 		    ringbuf.c ringbuf.h \
 		    rtnl.c rtnl.h \
+            realpath_x.c realpath_x.h \
 		    state.c state.h \
 		    start.c start.h \
 		    storage/btrfs.c storage/btrfs.h \
@@ -1969,15 +1970,6 @@ pam_cgfs_la_LDFLAGS = $(AM_LDFLAGS) \
 		      -shared
 endif
 endif
-
-install-exec-local: install-libLTLIBRARIES
-	mkdir -p $(DESTDIR)$(datadir)/lxc
-	install -c -m 644 lxc.functions $(DESTDIR)$(datadir)/lxc
-	mv $(shell readlink -f $(DESTDIR)$(libdir)/liblxc.so) $(DESTDIR)$(libdir)/liblxc.so.@LXC_ABI@
-	rm -f $(DESTDIR)$(libdir)/liblxc.so $(DESTDIR)$(libdir)/liblxc.so.1
-	cd $(DESTDIR)$(libdir); \
-	ln -sf liblxc.so.@LXC_ABI@ liblxc.so.$(firstword $(subst ., ,@LXC_ABI@)); \
-	ln -sf liblxc.so.$(firstword $(subst ., ,@LXC_ABI@)) liblxc.so
 
 if ENABLE_COMMANDS
 install-exec-hook:

@@ -258,7 +258,7 @@ restart:
 			if (fds_to_ignore[i] == fd)
 				break;
 
-		if (fd == fddir || fd == lxc_log_fd ||
+		if (fd == fddir || fd == lxc_log_fd || fd == lxc_log_out_fd ||
 		    (i < len_fds && fd == fds_to_ignore[i]))
 			continue;
 
@@ -1038,6 +1038,7 @@ static int do_start(void *data)
 	struct lxc_list *iterator;
 	uid_t nsuid = 0;
 	gid_t nsgid = 0;
+	char env[256] = "container=lxc";
 
 	lxc_sync_fini_parent(handler);
 
@@ -1052,7 +1053,7 @@ static int do_start(void *data)
 	 * exit before we set the pdeath signal leading to a unsupervized
 	 * container.
 	 */
-	ret = lxc_set_death_signal(SIGKILL, handler->monitor_pid, status_fd);
+	ret = lxc_set_death_signal(SIGKILL, handler->ns_clone_flags & CLONE_NEWPID ? 0 : handler->monitor_pid, status_fd);
 	if (ret < 0) {
 		SYSERROR("Failed to set PR_SET_PDEATHSIG to SIGKILL");
 		goto out_warn_father;
@@ -1353,7 +1354,13 @@ static int do_start(void *data)
 		}
 	}
 
-	ret = putenv("container=lxc");
+	// dont set container= for pv-platform
+	if (handler->conf->type && strcmp("pv-root", handler->conf->type)) {
+		sprintf(env, "container=%s", handler->conf->type);
+		ret = putenv(env);
+	} else if (!handler->conf->type) {
+		ret = putenv(env);
+	}
 	if (ret < 0) {
 		SYSERROR("Failed to set environment variable: container=lxc");
 		goto out_warn_father;
@@ -1693,6 +1700,7 @@ static int lxc_spawn(struct lxc_handler *handler)
 			handler->clone_flags		&= ~(CLONE_INTO_CGROUP | CLONE_NEWCGROUP);
 			handler->ns_on_clone_flags	&= ~CLONE_NEWCGROUP;
 			handler->ns_unshare_flags	|= CLONE_NEWCGROUP;
+			handler->monitor_pid = lxc_raw_getpid();
 
 			clone_args.flags		= handler->clone_flags;
 

@@ -188,10 +188,12 @@ struct lxc_tty_info {
 typedef enum lxc_mount_options_t {
 	LXC_MOUNT_CREATE_DIR	= 0,
 	LXC_MOUNT_CREATE_FILE	= 1,
-	LXC_MOUNT_OPTIONAL	= 2,
-	LXC_MOUNT_RELATIVE	= 3,
-	LXC_MOUNT_IDMAP		= 4,
-	LXC_MOUNT_MAX		= 5,
+	LXC_MOUNT_ORIGIN_MKDIR  = 2,
+	LXC_MOUNT_ORIGIN_MKFILE = 3,
+	LXC_MOUNT_OPTIONAL	= 4,
+	LXC_MOUNT_RELATIVE	= 5,
+	LXC_MOUNT_IDMAP		= 6,
+	LXC_MOUNT_MAX		= 7,
 } lxc_mount_options_t;
 
 __hidden extern const char *lxc_mount_options_info[LXC_MOUNT_MAX];
@@ -488,6 +490,8 @@ struct lxc_conf {
 
 	/* procs */
 	struct lxc_list procs;
+
+	char *type;
 
 	struct shmount {
 		/* Absolute path to the shared mount point on the host */

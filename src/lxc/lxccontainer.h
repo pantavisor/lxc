@@ -835,6 +835,16 @@ struct lxc_container {
 	bool (*reboot2)(struct lxc_container *c, int timeout);
 
 	/*!
+	 * \brief Override 'lxc' container type for environment of pid 1
+	 *
+	 * \param type Type of new container as string
+	 *
+	 * \return \c 0 on success, nonzero on failure.
+	 */
+	bool (*set_container_type)(struct lxc_container *c, char *type);
+
+
+	/*!
 	 * \brief Mount the host's path `source` onto the container's path `target`.
 	 */
 	int (*mount)(struct lxc_container *c, const char *source,
@@ -1128,6 +1138,13 @@ struct lxc_log {
  *\param log lxc log configuration.
  */
 int lxc_log_init(struct lxc_log *log);
+
+/*!
+ * \brief set a file descriptor to be used as alternative output
+ *
+ * \param fd file descriptor to write the output.
+ */
+int lxc_log_set_alternative_output(int fd);
 
 /*!
  * \brief Close log file.

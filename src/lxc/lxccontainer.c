@@ -777,23 +777,90 @@ static void push_arg(char ***argp, char *arg, int *nargs)
 
 static char **split_init_cmd(const char *incmd)
 {
-	__do_free char *copy = NULL;
-	char *p;
+	enum state {SPACE, ARG, STR, STR_ESC} s = SPACE;
+	size_t len, retlen;
+	char *p, *t, *tstart;
 	char **argv;
 	int nargs = 0;
 
 	if (!incmd)
 		return NULL;
 
-	copy = must_copy_string(incmd);
+	len = strlen(incmd) + 1;
+	p = alloca(len);
+	retlen = strlcpy(p, incmd, len);
+	if (retlen >= len)
+		return NULL;
 
 	do {
 		argv = malloc(sizeof(char *));
 	} while (!argv);
 
 	argv[0] = NULL;
-	lxc_iterate_parts (p, copy, " ")
-		push_arg(&argv, p, &nargs);
+	while (*p) {
+		switch (s)
+		{
+		case SPACE:
+			if ('\"' == *p) {
+				tstart = p+1;
+				s = STR;
+			} else if (' ' != *p) {
+				tstart = p;
+				s = ARG;
+			}
+			break;
+		case ARG:
+			if ('\"' == *p) {
+				t = calloc(1, (p - tstart + 1) * sizeof(char));
+				t = memcpy(t, tstart, p - tstart);
+				t[p - tstart] = '\0';
+				push_arg(&argv, t, &nargs);
+				free(t);
+
+				tstart = p+1;
+				s = STR;
+			} else if (' ' == *p) {
+				t = calloc(1, (p - tstart + 1) * sizeof(char));
+				t = memcpy(t, tstart, p - tstart);
+				t[p-tstart] = '\0';
+				push_arg(&argv, t, &nargs);
+				free(t);
+				s = SPACE;
+			}
+			break;
+		case STR:
+			if ('\"' == *p) {
+				t = calloc(1, (p - tstart + 1) * sizeof(char));
+				t = memcpy(t, tstart, p - tstart);
+				t[p-tstart] = '\0';
+				push_arg(&argv, t, &nargs);
+				free(t);
+
+				s = SPACE;
+			} else if ('\\' == *p) {
+				s = STR_ESC;
+			}
+			break;
+		case STR_ESC:
+			if ('\"' == *p || '\\' == *p) {
+				memmove(p-1, p, strlen(p)+1);
+				p--;
+			}
+			s = STR;
+			break;
+		}
+		p++;
+	}
+
+	if (SPACE != s) {
+		if (STR == s)
+			tstart--;
+		t = calloc(1, (p - tstart + 1) * sizeof(char));
+		t = memcpy(t, tstart, p - tstart);
+		t[p-tstart] = '\0';
+		push_arg(&argv, t, &nargs);
+		free(t);
+	}
 
 	if (nargs == 0) {
 		free(argv);
@@ -4952,6 +5019,26 @@ static bool do_lxcapi_restore(struct lxc_container *c, char *directory, bool ver
 
 WRAP_API_2(bool, lxcapi_restore, char *, bool)
 
+static bool do_lxcapi_set_container_type(struct lxc_container *c, char *type)
+{
+	if (!c)
+		return false;
+
+	current_config = c->lxc_conf;
+
+	if (current_config->type)
+		free(type);
+
+	current_config->type = strdup(type);
+
+	current_config = NULL;
+
+	return true;
+}
+
+WRAP_API_1(bool, lxcapi_set_container_type, char *)
+
+
 /* @st_mode is the st_mode field of the stat(source) return struct */
 static int create_mount_target(const char *dest, mode_t st_mode)
 {
@@ -5383,6 +5470,7 @@ struct lxc_container *lxc_container_new(const char *name, const char *configpath
 	c->restore = lxcapi_restore;
 	c->migrate = lxcapi_migrate;
 	c->console_log = lxcapi_console_log;
+	c->set_container_type = lxcapi_set_container_type;
 	c->mount = lxcapi_mount;
 	c->umount = lxcapi_umount;
 	c->seccomp_notify_fd = lxcapi_seccomp_notify_fd;
