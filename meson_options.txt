@@ -6,16 +6,16 @@ option('cgroup-pattern', type: 'string', value: '',
        description: 'CGroup pattern')
 
 # was --coverity-build in autotools
-option('coverity-build', type: 'boolean', value: 'true',
+option('coverity-build', type: 'boolean', value: 'false',
        description: 'build for coverity')
 
 # was --{disable,enable}-examples in autotools
-option('examples', type: 'boolean', value: 'true',
+option('examples', type: 'boolean', value: 'false',
        description: 'build and install examples')
 
 # was --init-script in autotools
 option('init-script', type : 'array',
-       choices : ['systemd', 'sysvinit', 'upstart'], value : ['systemd'],
+       choices : ['systemd', 'sysvinit', 'upstart'], value : ['upstart'],
        description : 'init script')
 
 # was --systemd-unidir in autotools
@@ -31,7 +31,7 @@ option('sd-bus', type: 'feature', value: 'auto',
        description: 'Enable linking against sd-bus')
 
 # was --{disable,enable}-doc in autotools
-option('man', type: 'boolean', value: 'true',
+option('man', type: 'boolean', value: 'false',
        description: 'build and install manpages')
 
 # was --{disable,enable}-pam in autotools
@@ -63,7 +63,7 @@ option('openssl', type: 'boolean', value: 'true',
        description: 'use openssl')
 
 # was --{disable,enable}-selinux in autotools
-option('selinux', type: 'boolean', value: 'true',
+option('selinux', type: 'boolean', value: 'false',
        description: 'use selinux')
 
 # was --{disable,enable}-tests in autotools

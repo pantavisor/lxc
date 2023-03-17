@@ -237,12 +237,13 @@ static unsigned int get_listen_fds_max(void)
 int lxc_check_inherited(struct lxc_conf *conf, bool closeall,
 			int *fds_to_ignore, size_t len_fds)
 {
+	int fd, fddir, ns;
+	size_t i;
+	bool ignore_ns_fd;
+	DIR *dir;
 	struct dirent *direntp;
 	unsigned int listen_fds_max;
 	struct lxc_state_client *client, *nclient;
-	int fd, fddir, ns;
-	DIR *dir;
-	bool ignore_ns_fd;
 
 	if (conf && conf->close_all_fds)
 		closeall = true;
@@ -265,7 +266,6 @@ restart:
 
 	while ((direntp = readdir(dir))) {
 		int ret;
-		int i;
 		bool matched = false;
 
 		if (strequal(direntp->d_name, "."))

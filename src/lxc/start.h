@@ -62,7 +62,6 @@ struct lxc_handler {
 	 */
 	int data_sock[2];
 
-
 	/* The socketpair() fds used to wait on successful daemonized startup. */
 	int state_socket_pair[2];
 

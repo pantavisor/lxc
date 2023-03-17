@@ -9,10 +9,9 @@ LOCAL_CONDITIONAL_LIBRARIES := OPTIONAL:libseccomp OPTIONAL:apparmor OPTIONAL:li
 
 LOCAL_EXPORT_LDLIBS = -llxc
 
-LOCAL_AUTOTOOLS_VERSION := 2.0.4
-LOCAL_AUTOTOOLS_CONFIGURE_ARGS := --disable-api --disable-api-docs --enable-static --disable-selinux
+LOCAL_MESON_CONFIGURE_ARGS := -Dseccomp=false -Dselinux=false -Dexamples=false -Dman=false -Dtests=false
 
 LOCAL_CLEAN_DIRS := $(call local-get-build-dir)/usr/share/ $(call local-get-build-dir)/usr/include/
 
-include $(BUILD_AUTOTOOLS)
+include $(BUILD_MESON)
 

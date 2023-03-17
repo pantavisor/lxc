@@ -42,11 +42,10 @@
 #define LXC_LOG_TIME_SIZE ((INTTYPE_TO_STRLEN(uint64_t)) * 2)
 
 int lxc_log_fd = -EBADF;
+int lxc_log_out_fd = -1;
 static bool wants_syslog = false;
 static int lxc_quiet_specified;
 bool lxc_log_use_global_fd = false;
-static int syslog_enable = 0;
-int lxc_quiet_specified;
 static int lxc_loglevel_specified;
 
 static char log_prefix[LXC_LOG_PREFIX_SIZE] = "lxc";
@@ -322,25 +321,11 @@ static int lxc_unix_epoch_to_utc(char *buf, size_t bufsize, const struct timespe
 
 static int log_write_to_fd(struct lxc_log_event *event, int fd)
 {
-	int fd_to_use = -EBADF;
 	char buffer[LXC_LOG_BUFFER_SIZE];
 	char date_time[LXC_LOG_TIME_SIZE];
 	int n;
 	ssize_t ret;
-	const char *log_container_name;
-
-#ifndef NO_LXC_CONF
-	if (current_config && !lxc_log_use_global_fd)
-		fd_to_use = current_config->logfd;
-#endif
-
-	log_container_name = lxc_log_get_container_name();
-
-	if (fd_to_use < 0)
-		fd_to_use = lxc_log_fd;
-
-	if (fd_to_use < 0)
-		return 0;
+	const char *log_container_name = lxc_log_get_container_name();
 
 	ret = lxc_unix_epoch_to_utc(date_time, LXC_LOG_TIME_SIZE, &event->timestamp);
 	if (ret)
@@ -690,7 +675,7 @@ static int _lxc_log_set_file(const char *name, const char *lxcpath, int create_d
  */
 int lxc_log_init(struct lxc_log *log)
 {
-	int ret;
+	int ret = -1;
 	int lxc_priority = LXC_LOG_LEVEL_ERROR;
 
 	if (!log)
@@ -725,7 +710,7 @@ int lxc_log_init(struct lxc_log *log)
 		if (ret < 0)
 			return log_error_errno(-1, errno, "Failed to enable logfile");
 
-		lxc_log_use_global_fd = 1;
+		lxc_log_use_global_fd = true;
 	} else if (log->name) {
 		ret = -1;
 
@@ -795,10 +780,6 @@ void lxc_log_close(void)
 		close(lxc_log_out_fd);
 		lxc_log_out_fd = -1;
 	}
-
-	if (lxc_log_fd == -1)
-		return;
-
 	free_disarm(log_fname);
 }
 

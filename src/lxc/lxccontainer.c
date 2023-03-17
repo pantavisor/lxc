@@ -788,7 +788,7 @@ static void push_arg(char ***argp, char *arg, int *nargs)
 static char **split_init_cmd(const char *incmd)
 {
 	enum state {SPACE, ARG, STR, STR_ESC} s = SPACE;
-	size_t len, retlen, tlen = 0;
+	size_t len, retlen = 0;
 	char *p, *t, *tstart;
 	char **argv;
 	int nargs = 0;
@@ -5553,7 +5553,7 @@ int list_defined_containers(const char *lxcpath, char ***names,
 	__do_closedir DIR *dir = NULL;
 	size_t array_len = 0, name_array_len = 0, ct_array_len = 0;
 	struct dirent *direntp;
-	struct lxc_container *c;
+	struct lxc_container *c = NULL;
 
 	if (!lxcpath)
 		lxcpath = lxc_global_config_value("lxc.lxcpath");
@@ -5594,6 +5594,9 @@ int list_defined_containers(const char *lxcpath, char ***names,
 				continue;
 			}
 		}
+
+		if (!c)
+			continue;
 
 		if (names) {
 			if (!add_to_array(names, direntp->d_name, array_len))

@@ -204,10 +204,12 @@ struct lxc_tty_info {
 typedef enum lxc_mount_options_t {
 	LXC_MOUNT_CREATE_DIR	= 0,
 	LXC_MOUNT_CREATE_FILE	= 1,
-	LXC_MOUNT_OPTIONAL	= 2,
-	LXC_MOUNT_RELATIVE	= 3,
-	LXC_MOUNT_IDMAP		= 4,
-	LXC_MOUNT_MAX		= 5,
+	LXC_MOUNT_ORIGIN_MKDIR	= 2,
+	LXC_MOUNT_ORIGIN_MKFILE	= 3,
+	LXC_MOUNT_OPTIONAL	= 4,
+	LXC_MOUNT_RELATIVE	= 5,
+	LXC_MOUNT_IDMAP		= 6,
+	LXC_MOUNT_MAX		= 7,
 } lxc_mount_options_t;
 
 __hidden extern const char *lxc_mount_options_info[LXC_MOUNT_MAX];
@@ -215,6 +217,8 @@ __hidden extern const char *lxc_mount_options_info[LXC_MOUNT_MAX];
 struct lxc_mount_options {
 	unsigned int create_dir : 1;
 	unsigned int create_file : 1;
+	unsigned int origin_mkdir : 1;
+	unsigned int origin_mkfile : 1;
 	unsigned int optional : 1;
 	unsigned int relative : 1;
 	unsigned int bind_recursively : 1;
@@ -678,6 +682,8 @@ static inline void put_lxc_mount_options(struct lxc_mount_options *mnt_opts)
 {
 	mnt_opts->create_dir = 0;
 	mnt_opts->create_file = 0;
+	mnt_opts->origin_mkdir = 0;
+	mnt_opts->origin_mkfile = 0;
 	mnt_opts->optional = 0;
 	mnt_opts->relative = 0;
 	mnt_opts->userns_path[0] = '\0';

@@ -116,6 +116,8 @@ liblxc_sources = files(
     'open_utils.h',
     'process_utils.c',
     'process_utils.h',
+    'realpath_x.c',
+    'realpath_x.h',
     'rexec.c',
     'rexec.h',
     'ringbuf.c',

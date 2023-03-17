@@ -35,7 +35,6 @@
 #include "open_utils.h"
 #include "parse.h"
 #include "process_utils.h"
-#include "raw_syscalls.h"
 #include "realpath_x.h"
 #include "syscall_wrappers.h"
 #include "utils.h"
@@ -1158,6 +1157,7 @@ int safe_mount_beneath_at(int beneath_fd, const char *src, const char *dst, cons
 			  unsigned int flags, const void *data)
 {
 	return __safe_mount_beneath_at(beneath_fd, src, dst, fstype, flags, data);
+}
 
 static int open_with_realpath(const char *target, const char *prefix_skip)
 {
@@ -1170,7 +1170,7 @@ static int open_with_realpath(const char *target, const char *prefix_skip)
 		target_inner = target + strlen (prefix_skip);
 	// bail if realpath fails
 	if (realpath_x(prefix_skip, target_inner, realtarget) && realpath(prefix_skip, realprefix)) {
-		int pl = strlen(realprefix);
+		size_t pl = strlen(realprefix);
 		if (strlen(realtarget) < pl) {
 			ERROR("Absolute symlink as target for mount is not supported yet.");
 			return -1;

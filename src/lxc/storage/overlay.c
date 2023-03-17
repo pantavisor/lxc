@@ -580,7 +580,6 @@ int ovl_mkdir(const struct mntent *mntent, const struct lxc_rootfs *rootfs,
 	int ret;
 	size_t arrlen, i, len, rootfslen;
 	int fret = -1;
-	size_t dirlen = 0;
 	char *rootfs_dir = NULL, *rootfs_path = NULL, *upperdir = NULL,
 	     *workdir = NULL;
 
@@ -612,12 +611,6 @@ int ovl_mkdir(const struct mntent *mntent, const struct lxc_rootfs *rootfs,
 		if (!rootfs_dir)
 			goto err;
 	}
-
-
-	TRACE("ovl_mkdir: rootfs_dir=%s lxcdir=%s done parsing opts: upper=%s,work=%s",
-	      rootfs_dir ? rootfs_dir:  "<NA>",
-	      lxcpath ? lxcpath: "<NA>",
-	      upperdir ? upperdir : "<NA>", workdir ? workdir : "<NA>");
 
 	/*
 	 * We neither allow users to create upperdirs and workdirs outside the

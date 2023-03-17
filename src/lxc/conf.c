@@ -53,7 +53,6 @@
 #include "open_utils.h"
 #include "parse.h"
 #include "process_utils.h"
-#include "raw_syscalls.h"
 #include "realpath_x.h"
 #include "ringbuf.h"
 #include "start.h"
@@ -1530,7 +1529,7 @@ static int lxc_chroot(const struct lxc_rootfs *rootfs)
 			if (strequal(slider1 + 1, "/proc"))
 				continue;
 
-			if (strncmp(slider1 + 1, "/exports", strlen("/exports") * sizeof(char)) == 0)
+			if (strequal(slider1 + 1, "/exports"))
 				continue;
 
 			ret = umount2(slider1, MNT_DETACH);
@@ -2519,6 +2518,8 @@ skipremount:
 const char *lxc_mount_options_info[LXC_MOUNT_MAX] = {
 	"create=dir",
 	"create=file",
+	"origin=mkdir",
+	"origin=mkfile",
 	"optional",
 	"relative",
 	"idmap=",
@@ -2550,7 +2551,6 @@ int parse_lxc_mount_attrs(struct lxc_mount_options *opts, char *mnt_opts)
 		case LXC_MOUNT_ORIGIN_MKFILE:
 			opts->origin_mkfile = 1;
 			break;
-
 		case LXC_MOUNT_OPTIONAL:
 			opts->optional = 1;
 			break;
