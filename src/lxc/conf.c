@@ -312,7 +312,7 @@ static int run_buffer(char *buffer)
 		return -1;
 	}
 
-	for (int i = 0; i < 10; i++) {
+	for (int i = 0; i < 1000; i++) {
 		ssize_t bytes_read;
 
 		bytes_read = lxc_read_nointr(fd, output, LXC_LOG_BUFFER_SIZE - 1);
