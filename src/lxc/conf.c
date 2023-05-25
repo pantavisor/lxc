@@ -2177,7 +2177,7 @@ static inline int mount_entry_on_generic(struct mntent *mntent,
 	if (hasmntopt(mntent, "origin=mkdir")) {
 		char *mkpath = malloc(sizeof(char) * (strlen(mntent->mnt_fsname) + rootfs_offset + 2));
 		if (relative)
-			sprintf(mkpath, "%s/%s", rootfs_path, mntent->mnt_fsname);
+			sprintf(mkpath, "%s/%s", rootfs_path ? rootfs_path : "NULL", mntent->mnt_fsname);
 		else
 			sprintf(mkpath, "%s", mntent->mnt_fsname);
 
