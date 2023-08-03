@@ -1494,11 +1494,11 @@ static int lxc_recv_ttys_from_child(struct lxc_handler *handler)
 	if (!conf->ttys.max)
 		return 0;
 
-	ttys->tty = malloc(sizeof(*ttys->tty) * ttys->max);
+	ttys->tty = calloc(ttys->max, sizeof(*ttys->tty));
 	if (!ttys->tty)
 		return -1;
 
-	for (i = 0; i < conf->ttys.max; i++) {
+	for (i = conf->ttys.min; i < conf->ttys.max; i++) {
 		int ttyfds[2];
 
 		ret = lxc_abstract_unix_recv_fds(sock, ttyfds, 2, NULL, 0);
