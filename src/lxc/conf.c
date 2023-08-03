@@ -57,6 +57,7 @@
 #include "start.h"
 #include "storage.h"
 #include "storage/overlay.h"
+#include "str2argv.h"
 #include "syscall_wrappers.h"
 #include "terminal.h"
 #include "utils.h"
@@ -3748,9 +3749,33 @@ int run_lxc_hooks(const char *name, char *hookname, struct lxc_conf *conf,
 	lxc_list_for_each (it, &conf->hooks[which]) {
 		int ret;
 		char *hook = it->elem;
+		int hook_argc;
+		char **hook_argv;
+		const char *errmsg = NULL;
+
+		if (str2argv(hook, &hook_argc, &hook_argv, &errmsg)) {
+			ERROR("Error splitting hook to argv: %s", errmsg);
+			return -1;
+		}
+
+		// append any argv
+		if (argv) {
+			char ** argv_i=argv;
+			int ac = 0;
+			while (*argv_i) {
+				ac++;
+				argv_i++;
+			}
+			hook_argv = realloc(hook_argv, hook_argc + ac + 1 );
+			memcpy(hook_argv + hook_argc, argv, ac);
+			hook_argv[ac+1] = NULL;
+		}
 
 		ret = run_script_argv(name, conf->hooks_version, "lxc", hook,
-				      hookname, argv);
+				      hookname, hook_argv+1);
+
+		free(hook_argv);
+
 		if (ret < 0)
 			return -1;
 	}
