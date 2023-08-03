@@ -1048,11 +1048,6 @@ void lxc_fini(const char *name, struct lxc_handler *handler)
 		}
 	}
 
-	/* Reset mask set by setup_signal_fd. */
-	ret = pthread_sigmask(SIG_SETMASK, &handler->oldmask, NULL);
-	if (ret < 0)
-		SYSWARN("Failed to restore signal mask");
-
 	lxc_terminal_delete(&handler->conf->console);
 	lxc_delete_tty(&handler->conf->ttys);
 
@@ -1076,6 +1071,11 @@ void lxc_fini(const char *name, struct lxc_handler *handler)
 
 	if (handler->conf->ephemeral == 1 && handler->conf->reboot != REBOOT_REQ)
 		lxc_destroy_container_on_signal(handler, name);
+
+	/* Reset mask set by setup_signal_fd. */
+	ret = pthread_sigmask(SIG_SETMASK, &handler->oldmask, NULL);
+	if (ret < 0)
+		SYSWARN("Failed to restore signal mask");
 
 	lxc_free_handler(handler);
 }
@@ -1140,12 +1140,6 @@ static int do_start(void *data)
 	ret = lxc_ambient_caps_up();
 	if (ret < 0) {
 		ERROR("Failed to raise ambient capabilities");
-		goto out_warn_father;
-	}
-
-	ret = pthread_sigmask(SIG_SETMASK, &handler->oldmask, NULL);
-	if (ret < 0) {
-		SYSERROR("Failed to set signal mask");
 		goto out_warn_father;
 	}
 
@@ -1478,6 +1472,11 @@ out_warn_father:
 out_error:
 	if (devnull_fd >= 0)
 		close(devnull_fd);
+
+	ret = pthread_sigmask(SIG_SETMASK, &handler->oldmask, NULL);
+	if (ret < 0) {
+		SYSERROR("Failed to set signal mask");
+	}
 
 	return -1;
 }
