@@ -860,7 +860,7 @@ static int lxc_setup_ttys(struct lxc_conf *conf)
 	if (!conf->rootfs.path)
 		return 0;
 
-	for (i = 0; i < ttys->max; i++) {
+	for (i = ttys->min; i < ttys->max; i++) {
 		struct lxc_terminal_info *tty = &ttys->tty[i];
 
 		ret = snprintf(path, sizeof(path), "/dev/tty%d", i + 1);
@@ -947,7 +947,10 @@ int lxc_allocate_ttys(struct lxc_conf *conf)
 	if (!ttys->tty)
 		return -ENOMEM;
 
-	for (i = 0; i < ttys->max; i++) {
+	for (i = 0; i < ttys->min; i++) {
+		memset(&ttys->tty[i], 0, sizeof(ttys->tty[i]));
+	}
+	for (i = ttys->min; i < ttys->max; i++) {
 		struct lxc_terminal_info *tty = &ttys->tty[i];
 
 		tty->master = -EBADF;
@@ -996,7 +999,7 @@ void lxc_delete_tty(struct lxc_tty_info *ttys)
 	if (!ttys->tty)
 		return;
 
-	for (i = 0; i < ttys->max; i++) {
+	for (i = ttys->min; i < ttys->max; i++) {
 		struct lxc_terminal_info *tty = &ttys->tty[i];
 
 		if (tty->master >= 0) {
@@ -1025,7 +1028,7 @@ static int lxc_send_ttys_to_parent(struct lxc_handler *handler)
 	if (ttys->max == 0)
 		return 0;
 
-	for (i = 0; i < ttys->max; i++) {
+	for (i = ttys->min; i < ttys->max; i++) {
 		int ttyfds[2];
 		struct lxc_terminal_info *tty = &ttys->tty[i];
 
