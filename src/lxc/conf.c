@@ -292,6 +292,19 @@ static int run_buffer(char *buffer)
 	int fd, ret;
 	struct lxc_popen_FILE *f;
 
+        sigset_t set;
+        sigset_t oldset;
+        int s;
+
+        /* Block SIGQUIT and SIGUSR1; other threads created by main()
+           will inherit a copy of the signal mask. */
+
+        sigemptyset(&set);
+        sigaddset(&set, SIGCHLD);
+        s = pthread_sigmask(SIG_BLOCK, &set, &oldset);
+        if (s != 0)
+            SYSERROR("pthread_sigmask");
+
 	f = lxc_popen(buffer);
 	if (!f) {
 		SYSERROR("Failed to popen() %s", buffer);
@@ -326,6 +339,7 @@ static int run_buffer(char *buffer)
 	}
 
 	ret = lxc_pclose(f);
+	pthread_sigmask(SIG_SETMASK, &oldset, NULL);
 	if (ret == -1) {
 		SYSERROR("Script exited with error");
 		return -1;
