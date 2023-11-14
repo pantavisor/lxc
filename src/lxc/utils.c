@@ -413,11 +413,6 @@ struct lxc_popen_FILE *lxc_popen(const char *command)
 
 		close(pipe_fds[0]);
 
-		/*
-		 * set a separate process group for hook and its children
-		 * in order to prevent accidental reaping when lxc is used
-		 * as a library instead of standalone commands
-		 */
 		/* duplicate stdout */
 		if (pipe_fds[1] != STDOUT_FILENO)
 			ret = dup2(pipe_fds[1], STDOUT_FILENO);
