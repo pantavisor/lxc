@@ -418,8 +418,6 @@ struct lxc_popen_FILE *lxc_popen(const char *command)
 		 * in order to prevent accidental reaping when lxc is used
 		 * as a library instead of standalone commands
 		 */
-		setpgrp();
-
 		/* duplicate stdout */
 		if (pipe_fds[1] != STDOUT_FILENO)
 			ret = dup2(pipe_fds[1], STDOUT_FILENO);
