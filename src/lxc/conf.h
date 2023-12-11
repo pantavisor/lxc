@@ -127,6 +127,7 @@ struct id_map {
  */
 struct lxc_tty_info {
 	size_t max;
+	size_t min;
 	char *dir;
 	char *tty_names;
 	struct lxc_terminal_info *tty;
