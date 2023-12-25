@@ -49,7 +49,8 @@ noinst_HEADERS = attach.h \
 		 tools/arguments.h \
 		 storage/storage_utils.h \
 		 utils.h \
-		 uuid.h
+		 uuid.h \
+		 str2argv.h
 
 if IS_BIONIC
 noinst_HEADERS += ../include/fexecve.h \
@@ -143,6 +144,7 @@ liblxc_la_SOURCES = af_unix.c af_unix.h \
 		    storage/storage.c storage/storage.h \
 		    storage/storage_utils.c storage/storage_utils.h \
 		    storage/zfs.c storage/zfs.h \
+		    str2argv.c str2argv.h \
 		    string_utils.c string_utils.h \
 		    sync.c sync.h \
 		    syscall_wrappers.h \
