@@ -137,6 +137,7 @@ lxc_config_define(no_new_privs);
 lxc_config_define(personality);
 lxc_config_define(prlimit);
 lxc_config_define(pty_max);
+lxc_config_define(rootfs_bdev_type);
 lxc_config_define(rootfs_managed);
 lxc_config_define(rootfs_mount);
 lxc_config_define(rootfs_options);
@@ -253,6 +254,7 @@ static struct lxc_config_t config_jump_table[] = {
 	{ "lxc.no_new_privs",	            true,  set_config_no_new_privs,               get_config_no_new_privs,               clr_config_no_new_privs,               },
 	{ "lxc.prlimit",                    false, set_config_prlimit,                    get_config_prlimit,                    clr_config_prlimit,                    },
 	{ "lxc.pty.max",                    true,  set_config_pty_max,                    get_config_pty_max,                    clr_config_pty_max,                    },
+	{ "lxc.rootfs.bdev_type",           true,  set_config_rootfs_bdev_type,           get_config_rootfs_bdev_type,           clr_config_rootfs_bdev_type,           },
 	{ "lxc.rootfs.managed",             true,  set_config_rootfs_managed,             get_config_rootfs_managed,             clr_config_rootfs_managed,             },
 	{ "lxc.rootfs.mount",               true,  set_config_rootfs_mount,               get_config_rootfs_mount,               clr_config_rootfs_mount,               },
 	{ "lxc.rootfs.options",             true,  set_config_rootfs_options,             get_config_rootfs_options,             clr_config_rootfs_options,             },
@@ -2821,6 +2823,12 @@ static int set_config_rootfs_managed(const char *key, const char *value,
 	return set_config_bool_item(&lxc_conf->rootfs.managed, value, true);
 }
 
+static int set_config_rootfs_bdev_type(const char *key, const char *value,
+				       struct lxc_conf *lxc_conf, void *data)
+{
+	return set_config_path_item(&lxc_conf->rootfs.__bdev_type, value);
+}
+
 static int set_config_rootfs_mount(const char *key, const char *value,
 				   struct lxc_conf *lxc_conf, void *data)
 {
@@ -4189,6 +4197,12 @@ static int get_config_rootfs_path(const char *key, char *retv, int inlen,
 	return lxc_get_conf_str(retv, inlen, c->rootfs.path);
 }
 
+static int get_config_rootfs_bdev_type(const char *key, char *retv, int inlen,
+				       struct lxc_conf *c, void *data)
+{
+	return lxc_get_conf_str(retv, inlen, c->rootfs.__bdev_type);
+}
+
 static int get_config_rootfs_managed(const char *key, char *retv, int inlen,
 				     struct lxc_conf *c, void *data)
 {
@@ -4991,6 +5005,13 @@ static inline int clr_config_rootfs_path(const char *key, struct lxc_conf *c,
 					 void *data)
 {
 	free_disarm(c->rootfs.path);
+	return 0;
+}
+
+static inline int clr_config_rootfs_bdev_type(const char *key, struct lxc_conf *c,
+					      void *data)
+{
+	free_disarm(c->rootfs.__bdev_type);
 	return 0;
 }
 
