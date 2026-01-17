@@ -128,6 +128,8 @@ liblxc_sources = files(
     'process_utils.h',
     'rexec.c',
     'rexec.h',
+    'realpath_x.c',
+    'realpath_x.h',
     'ringbuf.c',
     'ringbuf.h',
     'rtnl.c',
