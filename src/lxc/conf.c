@@ -56,6 +56,7 @@
 #include "open_utils.h"
 #include "parse.h"
 #include "process_utils.h"
+#include "realpath_x.h"
 #include "ringbuf.h"
 #include "start.h"
 #include "storage/storage.h"
@@ -2298,6 +2299,8 @@ static inline int mount_entry_on_generic(struct mntent *mntent,
 {
 	__do_free char *mntdata = NULL;
 	char *rootfs_path = NULL;
+	char resolved_path[PATH_MAX];
+	const char *mount_path;
 	int ret;
 	bool dev, optional, relative;
 	struct lxc_mount_options opts = {};
@@ -2309,7 +2312,20 @@ static inline int mount_entry_on_generic(struct mntent *mntent,
 	if (rootfs && rootfs->path)
 		rootfs_path = rootfs->mount;
 
-	ret = mount_entry_create_dir_file(mntent, path, rootfs, lxc_name,
+	/* Resolve symlinks in mount target path relative to rootfs */
+	mount_path = path;
+	if (rootfs_path) {
+		size_t rootfs_len = strlen(rootfs_path);
+		if (strncmp(path, rootfs_path, rootfs_len) == 0) {
+			char *resolved = realpath_x(rootfs_path, path + rootfs_len, resolved_path);
+			if (resolved) {
+				mount_path = resolved;
+				TRACE("Resolved mount path: %s -> %s", path, mount_path);
+			}
+		}
+	}
+
+	ret = mount_entry_create_dir_file(mntent, mount_path, rootfs, lxc_name,
 					  lxc_path);
 	if (ret < 0) {
 		if (optional)
@@ -2337,7 +2353,7 @@ static inline int mount_entry_on_generic(struct mntent *mntent,
 		return -1;
 
 	ret = mount_entry(mntent->mnt_fsname,
-			  path,
+			  mount_path,
 			  mntent->mnt_type,
 			  opts.mnt_flags,
 			  opts.prop_flags,
