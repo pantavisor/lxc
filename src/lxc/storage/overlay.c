@@ -611,22 +611,25 @@ int ovl_mkdir(const struct mntent *mntent, const struct lxc_rootfs *rootfs,
 		rootfs_dir = ovl_get_rootfs(rootfs_path, &rootfslen);
 		if (!rootfs_dir)
 			goto err;
-
-		dirlen = strlen(lxcpath);
 	}
 
+	TRACE("ovl_mkdir: rootfs_dir=%s lxcdir=%s done parsing opts: upper=%s,work=%s",
+	      rootfs_dir ? rootfs_dir : "<NA>",
+	      lxcpath[0] ? lxcpath : "<NA>",
+	      upperdir ? upperdir : "<NA>", workdir ? workdir : "<NA>");
+
 	/*
-	 * We neither allow users to create upperdirs and workdirs outside the
-	 * containerdir nor inside the rootfs. The latter might be debatable.
-	 * When we have a container without a rootfs we skip the checks.
+	 * Allow upperdirs and workdirs outside the containerdir, but not inside
+	 * the rootfs. When we have a container without a rootfs we skip the checks.
 	 */
 	ret = 0;
 	if (upperdir) {
 		if (!rootfs_path)
 			ret = lxc_mkdir_p(upperdir, 0755);
-		else if (!strncmp(upperdir, lxcpath, dirlen) &&
-			 strncmp(upperdir, rootfs_dir, rootfslen))
+		else if (strncmp(upperdir, rootfs_dir, rootfslen))
 			ret = lxc_mkdir_p(upperdir, 0755);
+		else
+			INFO("Invalid upperdir (%s): must not be inside rootfs (%s)", upperdir, rootfs_dir);
 
 		if (ret < 0)
 			SYSWARN("Failed to create directory \"%s\"", upperdir);
@@ -636,9 +639,10 @@ int ovl_mkdir(const struct mntent *mntent, const struct lxc_rootfs *rootfs,
 	if (workdir) {
 		if (!rootfs_path)
 			ret = lxc_mkdir_p(workdir, 0755);
-		else if (!strncmp(workdir, lxcpath, dirlen) &&
-			 strncmp(workdir, rootfs_dir, rootfslen))
+		else if (strncmp(workdir, rootfs_dir, rootfslen))
 			ret = lxc_mkdir_p(workdir, 0755);
+		else
+			INFO("Invalid workdir (%s): must not be inside rootfs (%s)", workdir, rootfs_dir);
 
 		if (ret < 0)
 			SYSWARN("Failed to create directory \"%s\"", workdir);
