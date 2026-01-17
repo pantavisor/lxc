@@ -1315,6 +1315,9 @@ static int lxc_chroot(const struct lxc_rootfs *rootfs)
 			if (strequal(slider1 + 1, "/proc"))
 				continue;
 
+			if (strnequal(slider1 + 1, "/exports", 8))
+				continue;
+
 			ret = umount2(slider1, MNT_DETACH);
 			if (ret == 0)
 				progress++;
@@ -3476,7 +3479,7 @@ static void turn_into_dependent_mounts(const struct lxc_rootfs *rootfs)
 			continue;
 
 		null_endofword(opts);
-		if (!strstr(opts, "shared"))
+		if (!strstr(opts, "shared") || strstr(target, "exports"))
 			continue;
 
 		null_endofword(target);
