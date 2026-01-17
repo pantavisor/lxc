@@ -3541,10 +3541,22 @@ static bool verify_start_hooks(struct lxc_conf *conf)
 	list_for_each_entry(hook, &conf->hooks[LXCHOOK_START], head) {
 		int ret;
 		char *hookname = hook->val;
+		char *cmdend, sav = '\0';
+
+		/* Extract command name without parameters for access check */
+		cmdend = strchr(hookname, ' ');
+		if (cmdend) {
+			sav = *cmdend;
+			*cmdend = '\0';
+		}
 
 		ret = strnprintf(path, sizeof(path), "%s%s",
 			       conf->rootfs.path ? conf->rootfs.mount : "",
 			       hookname);
+
+		if (cmdend)
+			*cmdend = sav;
+
 		if (ret < 0)
 			return false;
 
