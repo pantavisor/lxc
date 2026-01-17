@@ -1365,7 +1365,8 @@ static int do_start(void *data)
 	if (ret < 0)
 		goto out_warn_father;
 
-	{
+	/* Set container= env var unless type is "pv-root" (Pantavisor root platform) */
+	if (!handler->conf->type || !strequal(handler->conf->type, "pv-root")) {
 		const char *container_type = handler->conf->type ? handler->conf->type : "lxc";
 		char *container_env = must_make_path("container=", container_type, NULL);
 		ret = putenv(container_env);

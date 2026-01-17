@@ -538,6 +538,18 @@ static int run_buffer(char *buffer)
 	__do_free char *output = NULL;
 	__do_lxc_pclose struct lxc_popen_FILE *f = NULL;
 	int fd, ret;
+	sigset_t set, oldset;
+
+	/*
+	 * Block SIGCHLD to prevent the parent process from reaping
+	 * the child before lxc_pclose() can do so. This is needed when
+	 * LXC is used as a library (e.g., by Pantavisor).
+	 */
+	sigemptyset(&set);
+	sigaddset(&set, SIGCHLD);
+	ret = pthread_sigmask(SIG_BLOCK, &set, &oldset);
+	if (ret != 0)
+		SYSWARN("Failed to block SIGCHLD");
 
 	f = lxc_popen(buffer);
 	if (!f)
@@ -565,6 +577,10 @@ static int run_buffer(char *buffer)
 	}
 
 	ret = lxc_pclose(move_ptr(f));
+
+	/* Restore the original signal mask */
+	pthread_sigmask(SIG_SETMASK, &oldset, NULL);
+
 	if (ret == -1)
 		return log_error_errno(-1, errno, "Script exited with error");
 	else if (WIFEXITED(ret) && WEXITSTATUS(ret) != 0)
