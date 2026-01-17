@@ -2281,6 +2281,7 @@ const char *lxc_mount_options_info[LXC_MOUNT_MAX] = {
 	"optional",
 	"relative",
 	"idmap=",
+	"origin=mkdir",
 };
 
 /* Remove "optional", "create=dir", and "create=file" from mntopt */
@@ -2330,6 +2331,9 @@ int parse_lxc_mount_attrs(struct lxc_mount_options *opts, char *mnt_opts)
 			}
 
 			TRACE("Parse LXC specific mount option %d->\"idmap=%s\"", fd_userns, opts->userns_path);
+			break;
+		case LXC_MOUNT_ORIGIN_MKDIR:
+			opts->origin_mkdir = 1;
 			break;
 		default:
 			return syserror_set(-EINVAL, "Unknown LXC specific mount option");
@@ -2438,6 +2442,15 @@ static inline int mount_entry_on_generic(struct mntent *mntent,
 	ret = parse_lxc_mount_attrs(&opts, mntent->mnt_opts);
 	if (ret < 0)
 		return ret;
+
+	/* origin=mkdir: create the source directory if it doesn't exist */
+	if (opts.origin_mkdir) {
+		ret = lxc_mkdir_p(mntent->mnt_fsname, 0755);
+		if (ret < 0 && errno != EEXIST) {
+			SYSERROR("Failed to create source directory \"%s\" for mount", mntent->mnt_fsname);
+			return optional ? 0 : -1;
+		}
+	}
 
 	/*
 	 * Idmapped mount entries will be setup by the parent for us. Note that
