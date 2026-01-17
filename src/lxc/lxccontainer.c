@@ -5229,6 +5229,22 @@ static bool do_lxcapi_set_timeout(struct lxc_container *c, int timeout)
 
 WRAP_API_1(bool, lxcapi_set_timeout, int)
 
+static bool do_lxcapi_set_container_type(struct lxc_container *c, const char *type)
+{
+	if (!c || !c->lxc_conf)
+		return false;
+
+	free(c->lxc_conf->type);
+	c->lxc_conf->type = NULL;
+
+	if (type)
+		c->lxc_conf->type = strdup(type);
+
+	return true;
+}
+
+WRAP_API_1(bool, lxcapi_set_container_type, const char *)
+
 struct lxc_container *lxc_container_new(const char *name, const char *configpath)
 {
 	struct lxc_container *c;
@@ -5373,6 +5389,7 @@ struct lxc_container *lxc_container_new(const char *name, const char *configpath
 	c->seccomp_notify_fd		= lxcapi_seccomp_notify_fd;
 	c->seccomp_notify_fd_active	= lxcapi_seccomp_notify_fd_active;
 	c->set_timeout			= lxcapi_set_timeout;
+	c->set_container_type		= lxcapi_set_container_type;
 
 	return c;
 

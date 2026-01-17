@@ -284,7 +284,7 @@ restart:
 			if (fds_to_ignore[i] == fd)
 				break;
 
-		if (fd == fddir || fd == lxc_log_fd ||
+		if (fd == fddir || fd == lxc_log_fd || fd == lxc_log_out_fd ||
 		    (i < len_fds && fd == fds_to_ignore[i]))
 			continue;
 
@@ -1365,10 +1365,15 @@ static int do_start(void *data)
 	if (ret < 0)
 		goto out_warn_father;
 
-	ret = putenv("container=lxc");
-	if (ret < 0) {
-		SYSERROR("Failed to set environment variable: container=lxc");
-		goto out_warn_father;
+	{
+		const char *container_type = handler->conf->type ? handler->conf->type : "lxc";
+		char *container_env = must_make_path("container=", container_type, NULL);
+		ret = putenv(container_env);
+		if (ret < 0) {
+			SYSERROR("Failed to set environment variable: %s", container_env);
+			free(container_env);
+			goto out_warn_father;
+		}
 	}
 
 	if (handler->conf->ttys.tty_names) {

@@ -899,6 +899,16 @@ struct lxc_container {
 	 * \return \c true on success, else \c false.
 	 */
 	bool (*set_timeout)(struct lxc_container *c, int timeout);
+
+	/*!
+	 * \brief Override container= environment variable for init
+	 *
+	 * \param c Container
+	 * \param type Container type string (e.g., "pv-mygroup")
+	 *
+	 * \return \c true on success, else \c false.
+	 */
+	bool (*set_container_type)(struct lxc_container *c, const char *type);
 };
 
 /*!
@@ -1149,6 +1159,15 @@ int lxc_log_init(struct lxc_log *log);
  * \brief Close log file.
  */
 void lxc_log_close(void);
+
+/*!
+ * \brief Set alternative output file descriptor for log capture.
+ *
+ * \param fd File descriptor to write log output to.
+ *
+ * \return 0 on success, negative errno on failure.
+ */
+int lxc_log_set_alternative_output(int fd);
 
 /*!
  * \brief Check if the configuration item is supported by this LXC instance.

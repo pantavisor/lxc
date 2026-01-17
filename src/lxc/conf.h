@@ -577,6 +577,9 @@ struct lxc_conf {
 
 	bool sched_core;
 	__u64 sched_core_cookie;
+
+	/* Pantavisor: override container= environment variable */
+	char *type;
 };
 
 extern thread_local struct lxc_conf *current_config;

@@ -42,6 +42,7 @@
 #define LXC_LOG_TIME_SIZE ((INTTYPE_TO_STRLEN(uint64_t)) * 2)
 
 int lxc_log_fd = -EBADF;
+int lxc_log_out_fd = -EBADF;
 static bool wants_syslog = false;
 static int lxc_quiet_specified;
 bool lxc_log_use_global_fd = false;
@@ -380,6 +381,53 @@ static int log_append_logfile(const struct lxc_log_appender *appender,
 	return lxc_write_nointr(fd_to_use, buffer, n + 1);
 }
 
+static int log_append_out_fd(const struct lxc_log_appender *appender,
+			     struct lxc_log_event *event)
+{
+	char buffer[LXC_LOG_BUFFER_SIZE];
+	char date_time[LXC_LOG_TIME_SIZE];
+	int n;
+	ssize_t ret;
+	const char *log_container_name;
+
+	if (lxc_log_out_fd < 0)
+		return 0;
+
+	log_container_name = lxc_log_get_container_name();
+
+	ret = lxc_unix_epoch_to_utc(date_time, LXC_LOG_TIME_SIZE, &event->timestamp);
+	if (ret)
+		return ret;
+
+	n = snprintf(buffer, sizeof(buffer),
+		     "%s%s%s %s %-8s %s - %s:%s:%d - ",
+		     log_prefix,
+		     log_container_name ? " " : "",
+		     log_container_name ? log_container_name : "",
+		     date_time,
+		     lxc_log_priority_to_string(event->priority),
+		     event->category,
+		     event->locinfo->file, event->locinfo->func,
+		     event->locinfo->line);
+	if (n < 0)
+		return n;
+
+	if ((size_t)n < STRARRAYLEN(buffer)) {
+		ret = vsnprintf(buffer + n, sizeof(buffer) - n, event->fmt, *event->vap);
+		if (ret < 0)
+			return 0;
+
+		n += ret;
+	}
+
+	if ((size_t)n >= sizeof(buffer))
+		n = STRARRAYLEN(buffer);
+
+	buffer[n] = '\n';
+
+	return lxc_write_nointr(lxc_log_out_fd, buffer, n + 1);
+}
+
 #if HAVE_DLOG
 static int log_append_dlog(const struct lxc_log_appender *appender,
 			     struct lxc_log_event *event)
@@ -448,6 +496,12 @@ static struct lxc_log_appender log_appender_stderr = {
 static struct lxc_log_appender log_appender_logfile = {
 	.name		= "logfile",
 	.append		= log_append_logfile,
+	.next		= NULL,
+};
+
+static struct lxc_log_appender log_appender_out_fd = {
+	.name		= "out_fd",
+	.append		= log_append_out_fd,
 	.next		= NULL,
 };
 
@@ -737,8 +791,35 @@ void lxc_log_close(void)
 	free_disarm(log_vmname);
 
 	close_prot_errno_disarm(lxc_log_fd);
+	close_prot_errno_disarm(lxc_log_out_fd);
 
 	free_disarm(log_fname);
+}
+
+int lxc_log_set_alternative_output(int fd)
+{
+	struct lxc_log_appender *appender;
+
+	if (fd < 0)
+		return -EBADF;
+
+	lxc_log_out_fd = fcntl(fd, F_DUPFD_CLOEXEC, STDERR_FILENO);
+	if (lxc_log_out_fd < 0)
+		return -errno;
+
+	close(fd);
+
+	appender = lxc_log_category_lxc.appender;
+	if (!appender) {
+		lxc_log_category_lxc.appender = &log_appender_out_fd;
+		return 0;
+	}
+
+	while (appender->next)
+		appender = appender->next;
+
+	appender->next = &log_appender_out_fd;
+	return 0;
 }
 
 int lxc_log_syslog(int facility)
