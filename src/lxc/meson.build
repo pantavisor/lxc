@@ -24,6 +24,14 @@ liblxcfs_version_file = configure_file(
     install_dir: lxcinclude
 )
 
+liblxcfs_pv_export_file = configure_file(
+    configuration: dummy_config_data,
+    input: 'pv_export.h',
+    output: 'pv_export.h',
+    install: true,
+    install_dir: lxcinclude
+)
+
 liblxc_sources = files(
     'cgroups/cgfsng.c',
     'cgroups/cgroup.c',
