@@ -351,10 +351,14 @@ static bool complete_word(char ***result, char *start, char *end, size_t *cap,
 /*
  * Given a a string 'one two "three four"', split into three words,
  * one, two, and "three four"
+ *
+ * Handles escaped quotes within quoted strings: "hello \"world\""
+ * Escape sequences: \" and \\ within double-quoted strings
  */
 char **lxc_string_split_quoted(char *string)
 {
-	char *nextword = string, *p, state;
+	enum { SPACE, ARG, STR, STR_ESC } state = SPACE;
+	char *nextword = string, *p;
 	char **result = NULL;
 	size_t result_capacity = 0;
 	size_t result_count = 0;
@@ -362,41 +366,57 @@ char **lxc_string_split_quoted(char *string)
 	if (!string || !*string)
 		return calloc(1, sizeof(char *));
 
-	// TODO I'm *not* handling escaped quote
-	state = ' ';
 	for (p = string; *p; p++) {
-		switch(state) {
-		case ' ':
+		switch (state) {
+		case SPACE:
 			if (isspace(*p))
 				continue;
-			else if (*p == '"' || *p == '\'') {
-				nextword = p;
-				state = *p;
+			if (*p == '"') {
+				nextword = p + 1;
+				state = STR;
 				continue;
 			}
 			nextword = p;
-			state = 'a';
+			state = ARG;
 			continue;
-		case 'a':
+		case ARG:
+			if (*p == '"') {
+				complete_word(&result, nextword, p, &result_capacity, &result_count);
+				nextword = p + 1;
+				state = STR;
+				continue;
+			}
 			if (isspace(*p)) {
 				complete_word(&result, nextword, p, &result_capacity, &result_count);
-				state = ' ';
+				state = SPACE;
 				continue;
 			}
 			continue;
-		case '"':
-		case '\'':
-			if (*p == state) {
-				complete_word(&result, nextword+1, p, &result_capacity, &result_count);
-				state = ' ';
+		case STR:
+			if (*p == '"') {
+				complete_word(&result, nextword, p, &result_capacity, &result_count);
+				state = SPACE;
 				continue;
 			}
+			if (*p == '\\') {
+				state = STR_ESC;
+				continue;
+			}
+			continue;
+		case STR_ESC:
+			/* Handle escaped quote or backslash by removing the backslash */
+			if (*p == '"' || *p == '\\')
+				memmove(p - 1, p, strlen(p) + 1);
+			state = STR;
 			continue;
 		}
 	}
 
-	if (state == 'a')
+	/* Handle unterminated argument or quoted string */
+	if (state == ARG)
 		complete_word(&result, nextword, p, &result_capacity, &result_count);
+	else if (state == STR || state == STR_ESC)
+		complete_word(&result, nextword - 1, p, &result_capacity, &result_count);
 
 	if (result == NULL)
 		return calloc(1, sizeof(char *));
