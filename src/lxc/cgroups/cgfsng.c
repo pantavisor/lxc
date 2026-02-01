@@ -3161,7 +3161,7 @@ static int cg_init(struct cgroup_ops *ops, struct lxc_conf *conf)
 {
 	int ret;
 	const char *tmp;
-	bool relative = false;
+	bool relative = conf ? conf->cgroup_meta.relative : false;
 
 	tmp = lxc_global_config_value("lxc.cgroup.use");
 	if (tmp) {

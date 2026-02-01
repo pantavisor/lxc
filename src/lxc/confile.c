@@ -131,6 +131,10 @@ lxc_config_define(uts_name);
 lxc_config_define(sysctl);
 lxc_config_define(proc);
 
+static int set_config_cgroup_relative(const char *, const char *, struct lxc_conf *, void *);
+static int get_config_cgroup_relative(const char *, char *, int, struct lxc_conf *, void *);
+static int clr_config_cgroup_relative(const char *, struct lxc_conf *, void *);
+
 /*
  * Important Note:
  * If a new config option is added to this table, be aware that 
@@ -151,6 +155,7 @@ static struct lxc_config_t config_jump_table[] = {
 	{ "lxc.cap.keep",                  set_config_cap_keep,                    get_config_cap_keep,                    clr_config_cap_keep,                  },
 	{ "lxc.cgroup2",                   set_config_cgroup2_controller,          get_config_cgroup2_controller,          clr_config_cgroup2_controller,        },
 	{ "lxc.cgroup.dir",                set_config_cgroup_dir,                  get_config_cgroup_dir,                  clr_config_cgroup_dir,                },
+	{ "lxc.cgroup.relative",           set_config_cgroup_relative,             get_config_cgroup_relative,             clr_config_cgroup_relative,           },
 	{ "lxc.cgroup",                    set_config_cgroup_controller,           get_config_cgroup_controller,           clr_config_cgroup_controller,         },
 	{ "lxc.console.buffer.size",       set_config_console_buffer_size,         get_config_console_buffer_size,         clr_config_console_buffer_size,       },
 	{ "lxc.console.logfile",           set_config_console_logfile,             get_config_console_logfile,             clr_config_console_logfile,           },
@@ -1304,6 +1309,24 @@ static int set_config_cgroup_dir(const char *key, const char *value,
 		return clr_config_cgroup_dir(key, lxc_conf, NULL);
 
 	return set_config_string_item(&lxc_conf->cgroup_meta.dir, value);
+}
+
+static int set_config_cgroup_relative(const char *key, const char *value,
+				      struct lxc_conf *lxc_conf, void *data)
+{
+	int ret;
+	int v;
+
+	if (lxc_config_value_empty(value))
+		return clr_config_cgroup_relative(key, lxc_conf, NULL);
+
+	ret = lxc_safe_int(value, &v);
+	if (ret < 0)
+		return -1;
+
+	lxc_conf->cgroup_meta.relative = !!v;
+
+	return 0;
 }
 
 static bool parse_limit_value(const char **value, rlim_t *res)
@@ -3126,6 +3149,15 @@ static int get_config_cgroup_dir(const char *key, char *retv, int inlen,
 	return fulllen;
 }
 
+static int get_config_cgroup_relative(const char *key, char *retv, int inlen,
+				      struct lxc_conf *lxc_conf, void *data)
+{
+	int len;
+	int fulllen = 0;
+
+	return lxc_get_conf_int(lxc_conf, retv, inlen, lxc_conf->cgroup_meta.relative);
+}
+
 static int get_config_idmaps(const char *key, char *retv, int inlen,
 			     struct lxc_conf *c, void *data)
 {
@@ -3851,6 +3883,13 @@ static int clr_config_cgroup_dir(const char *key, struct lxc_conf *lxc_conf,
 		lxc_conf->cgroup_meta.dir = NULL;
 	}
 
+	return 0;
+}
+
+static int clr_config_cgroup_relative(const char *key, struct lxc_conf *lxc_conf,
+				      void *data)
+{
+	lxc_conf->cgroup_meta.relative = false;
 	return 0;
 }
 
