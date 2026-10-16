@@ -1356,9 +1356,22 @@ int lxc_chroot(const struct lxc_rootfs *rootfs)
 		return -1;
 	}
 
-	ret = mount(NULL, "/", NULL, MS_REC | MS_PRIVATE, NULL);
+	/* The copy on "/" keeps the propagation the rootfs and the mount
+	 * entries were set up with, as with pivot_root(). Turn the old root
+	 * and the old rootfs into dependent mounts instead, so cleaning them
+	 * up below propagates neither to the host nor into the copy. "/"
+	 * still resolves to the old root here and MS_REC on it would also
+	 * reach the copy.
+	 */
+	ret = mount(NULL, "/", NULL, MS_SLAVE, NULL);
 	if (ret < 0) {
-		SYSERROR("Failed to remount \"/\"");
+		SYSERROR("Failed to make old root MS_SLAVE");
+		return -1;
+	}
+
+	ret = mount(NULL, nroot, NULL, MS_REC | MS_SLAVE, NULL);
+	if (ret < 0) {
+		SYSERROR("Failed to make \"%s\" MS_REC | MS_SLAVE", nroot);
 		return -1;
 	}
 
@@ -1408,6 +1421,7 @@ int lxc_chroot(const struct lxc_rootfs *rootfs)
 			if (strncmp(slider1 + 1, "/exports", strlen("/exports") * sizeof(char)) == 0)
 				continue;
 
+			(void)mount(NULL, slider1, NULL, MS_REC | MS_SLAVE, NULL);
 			ret = umount2(slider1, MNT_DETACH);
 			if (ret == 0)
 				progress++;
@@ -1418,6 +1432,7 @@ int lxc_chroot(const struct lxc_rootfs *rootfs)
 	}
 
 	/* This also can be skipped if a container uses userns. */
+	(void)mount(NULL, "./proc", NULL, MS_REC | MS_SLAVE, NULL);
 	(void)umount2("./proc", MNT_DETACH);
 
 	/* It is weird, but chdir("..") moves us in a new root */
