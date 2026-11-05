@@ -230,10 +230,6 @@ possible_link_flags = [
     '-fstack-protector-strong',
 ]
 
-# The gold linker fails with a bus error on sparc64
-if build_machine.cpu_family() != 'sparc64'
-    possible_link_flags += '-Wl,-fuse-ld=gold'
-endif
 
 if sanitize == 'none'
     possible_link_flags += '-Wl,--warn-common'
