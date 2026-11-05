@@ -154,6 +154,7 @@ lxc_config_define(signal_reboot);
 lxc_config_define(signal_stop);
 lxc_config_define(start);
 lxc_config_define(tty_max);
+lxc_config_define(tty_min);
 lxc_config_define(tty_dir);
 lxc_config_define(uts_name);
 lxc_config_define(sysctl);
@@ -275,6 +276,7 @@ static struct lxc_config_t config_jump_table[] = {
 	{ "lxc.start.order",                true,  set_config_start,                      get_config_start,                      clr_config_start,                      },
 	{ "lxc.tty.dir",                    true,  set_config_tty_dir,                    get_config_tty_dir,                    clr_config_tty_dir,                    },
 	{ "lxc.tty.max",                    true,  set_config_tty_max,                    get_config_tty_max,                    clr_config_tty_max,                    },
+	{ "lxc.tty.min",                    true,  set_config_tty_min,                    get_config_tty_min,                    clr_config_tty_min,                    },
 	{ "lxc.uts.name",                   true,  set_config_uts_name,                   get_config_uts_name,                   clr_config_uts_name,                   },
 	{ "lxc.sysctl",                     false, set_config_sysctl,                     get_config_sysctl,                     clr_config_sysctl,                     },
 	{ "lxc.proc",                       false, set_config_proc,                       get_config_proc,                       clr_config_proc,                       },
@@ -1653,6 +1655,30 @@ static int set_config_tty_max(const char *key, const char *value,
 		return ret;
 
 	lxc_conf->ttys.max = nbtty;
+
+	return 0;
+}
+
+static int set_config_tty_min(const char *key, const char *value,
+			      struct lxc_conf *lxc_conf, void *data)
+{
+	int ret;
+	unsigned int nbtty = 0;
+
+	if (lxc_config_value_empty(value)) {
+		lxc_conf->ttys.min = 0;
+		return 0;
+	}
+
+	ret = lxc_safe_uint(value, &nbtty);
+	if (ret < 0)
+		return ret;
+
+	/* min is compared as int and as size_t + 1 elsewhere */
+	if (nbtty > INT_MAX)
+		return -ERANGE;
+
+	lxc_conf->ttys.min = nbtty;
 
 	return 0;
 }
@@ -3777,6 +3803,12 @@ static int get_config_tty_max(const char *key, char *retv, int inlen,
 	return lxc_get_conf_size_t(c, retv, inlen, c->ttys.max);
 }
 
+static int get_config_tty_min(const char *key, char *retv, int inlen,
+			      struct lxc_conf *c, void *data)
+{
+	return lxc_get_conf_size_t(c, retv, inlen, c->ttys.min);
+}
+
 static int get_config_tty_dir(const char *key, char *retv, int inlen,
 			     struct lxc_conf *c, void *data)
 {
@@ -4833,6 +4865,13 @@ static inline int clr_config_tty_max(const char *key, struct lxc_conf *c,
 				     void *data)
 {
 	c->ttys.tty = 0;
+	return 0;
+}
+
+static inline int clr_config_tty_min(const char *key, struct lxc_conf *c,
+				     void *data)
+{
+	c->ttys.min = 0;
 	return 0;
 }
 

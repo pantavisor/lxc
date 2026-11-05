@@ -26,6 +26,11 @@ All patches applied without conflicts and without changes (`git range-diff` show
 | `1acdb510e` | `9343fe098` | Block SIGCHLD in run_buffer to prevent child reaping issues |
 | `577c9fe53` | `c2017d421` | Rebase notes 3.0 to 6.0 |
 
+## Config Key Carried as a Recipe Patch
+
+`lxc.tty.min` (lower bound of tty allocation) was only a recipe patch on 3.0.
+It is now part of the 6.0 and 7.0 branches and applied to 7.0 without changes.
+
 ## Not Ported
 
 | Branch | Commit | Why |
