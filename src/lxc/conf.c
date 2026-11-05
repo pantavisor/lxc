@@ -954,16 +954,13 @@ int lxc_allocate_ttys(struct lxc_conf *conf)
 	struct lxc_tty_info *ttys = &conf->ttys;
 
 	/* no tty in the configuration */
-	if (ttys->max == 0)
+	if (ttys->max == 0 || ttys->min >= ttys->max)
 		return 0;
 
-	ttys->tty = malloc(sizeof(*ttys->tty) * ttys->max);
+	ttys->tty = calloc(ttys->max, sizeof(*ttys->tty));
 	if (!ttys->tty)
 		return -ENOMEM;
 
-	for (i = 0; i < ttys->min; i++) {
-		memset(&ttys->tty[i], 0, sizeof(ttys->tty[i]));
-	}
 	for (i = ttys->min; i < ttys->max; i++) {
 		struct lxc_terminal_info *tty = &ttys->tty[i];
 
@@ -1039,7 +1036,7 @@ static int lxc_send_ttys_to_parent(struct lxc_handler *handler)
 	struct lxc_tty_info *ttys = &conf->ttys;
 	int sock = handler->data_sock[0];
 
-	if (ttys->max == 0)
+	if (ttys->max == 0 || ttys->min >= ttys->max)
 		return 0;
 
 	for (i = ttys->min; i < ttys->max; i++) {

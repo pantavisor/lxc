@@ -1059,6 +1059,10 @@ static int set_config_tty_min(const char *key, const char *value,
 	if (ret < 0)
 		return -1;
 
+	/* min is compared as int and as size_t + 1 elsewhere */
+	if (nbtty > INT_MAX)
+		return -ERANGE;
+
 	lxc_conf->ttys.min = nbtty;
 
 	return 0;
@@ -3855,7 +3859,7 @@ static inline int clr_config_pty_max(const char *key, struct lxc_conf *c,
 static inline int clr_config_tty_min(const char *key, struct lxc_conf *c,
 				     void *data)
 {
-	c->ttys.tty = 0;
+	c->ttys.min = 0;
 	return 0;
 }
 
