@@ -777,7 +777,7 @@ static int lxc_setup_ttys(struct lxc_conf *conf)
 	if (!conf->rootfs.path)
 		return 0;
 
-	for (size_t i = 0; i < ttys->max; i++) {
+	for (size_t i = ttys->min; i < ttys->max; i++) {
 		__do_close int fd_to = -EBADF;
 		struct lxc_terminal_info *tty = &ttys->tty[i];
 
@@ -866,7 +866,8 @@ static int lxc_setup_ttys(struct lxc_conf *conf)
 			return log_error(-1, "Error setting up container_ttys string");
 	}
 
-	INFO("Finished setting up %zu /dev/tty<N> device(s)", ttys->max);
+	INFO("Finished setting up %zu /dev/tty<N> device(s)",
+	     ttys->max > ttys->min ? ttys->max - ttys->min : (size_t)0);
 	return 0;
 }
 
@@ -878,14 +879,14 @@ static int lxc_allocate_ttys(struct lxc_conf *conf)
 	int ret;
 
 	/* no tty in the configuration */
-	if (ttys->max == 0)
+	if (ttys->max == 0 || ttys->min >= ttys->max)
 		return 0;
 
 	ttys->tty = zalloc(sizeof(struct lxc_terminal_info) * ttys->max);
 	if (!ttys->tty)
 		return -ENOMEM;
 
-	for (size_t i = 0; i < conf->ttys.max; i++) {
+	for (size_t i = ttys->min; i < conf->ttys.max; i++) {
 		struct lxc_terminal_info *tty = &ttys->tty[i];
 
 		ret = lxc_devpts_terminal(conf->devpts_fd, &tty->ptx,
@@ -903,7 +904,7 @@ static int lxc_allocate_ttys(struct lxc_conf *conf)
 		tty->busy = -1;
 	}
 
-	INFO("Finished creating %zu tty devices", ttys->max);
+	INFO("Finished creating %zu tty devices", ttys->max - ttys->min);
 	move_ptr(ttys);
 	return 0;
 }
@@ -913,7 +914,7 @@ void lxc_delete_tty(struct lxc_tty_info *ttys)
 	if (!ttys || !ttys->tty)
 		return;
 
-	for (size_t i = 0; i < ttys->max; i++) {
+	for (size_t i = ttys->min; i < ttys->max; i++) {
 		struct lxc_terminal_info *tty = &ttys->tty[i];
 		close_prot_errno_disarm(tty->ptx);
 		close_prot_errno_disarm(tty->pty);
@@ -929,10 +930,10 @@ static int __lxc_send_ttys_to_parent(struct lxc_handler *handler)
 	struct lxc_tty_info *ttys = &conf->ttys;
 	int sock = handler->data_sock[0];
 
-	if (ttys->max == 0)
+	if (ttys->max == 0 || ttys->min >= ttys->max)
 		return 0;
 
-	for (size_t i = 0; i < ttys->max; i++) {
+	for (size_t i = ttys->min; i < ttys->max; i++) {
 		int ttyfds[2];
 		struct lxc_terminal_info *tty = &ttys->tty[i];
 
@@ -948,9 +949,9 @@ static int __lxc_send_ttys_to_parent(struct lxc_handler *handler)
 	}
 
 	if (ret < 0)
-		SYSERROR("Failed to send %zu ttys to parent", ttys->max);
+		SYSERROR("Failed to send %zu ttys to parent", ttys->max - ttys->min);
 	else
-		TRACE("Sent %zu ttys to parent", ttys->max);
+		TRACE("Sent %zu ttys to parent", ttys->max - ttys->min);
 
 	return ret;
 }
@@ -1499,7 +1500,8 @@ static int lxc_setup_devpts_child(struct lxc_handler *handler)
 	size_t pty_max = conf->pty_max;
 	int ret;
 
-	pty_max += conf->ttys.max;
+	if (conf->ttys.max > conf->ttys.min)
+		pty_max += conf->ttys.max - conf->ttys.min;
 	if (pty_max <= 0)
 		return log_debug(0, "No new devpts instance will be mounted since no pts devices are required");
 
@@ -3754,10 +3756,11 @@ static int lxc_recv_ttys_from_child(struct lxc_handler *handler)
 	struct lxc_conf *conf = handler->conf;
 	struct lxc_tty_info *tty_info = &conf->ttys;
 	size_t ttys_max = tty_info->max;
+	size_t ttys_min = tty_info->min;
 	struct lxc_terminal_info *terminal_info;
 	int ret;
 
-	if (!ttys_max)
+	if (!ttys_max || ttys_min >= ttys_max)
 		return 0;
 
 	info_new->tty = malloc(sizeof(*(info_new->tty)) * ttys_max);
@@ -3772,12 +3775,12 @@ static int lxc_recv_ttys_from_child(struct lxc_handler *handler)
 		terminal_info->pty = -EBADF;
 	}
 
-	for (size_t i = 0; i < ttys_max; i++) {
+	for (size_t i = ttys_min; i < ttys_max; i++) {
 		int ptx = -EBADF, pty = -EBADF;
 
 		ret = lxc_abstract_unix_recv_two_fds(sock, &ptx, &pty);
 		if (ret < 0)
-			return syserror("Failed to receive %zu ttys from child", ttys_max);
+			return syserror("Failed to receive %zu ttys from child", ttys_max - ttys_min);
 
 		terminal_info = &info_new->tty[i];
 		terminal_info->ptx = ptx;
@@ -3787,7 +3790,7 @@ static int lxc_recv_ttys_from_child(struct lxc_handler *handler)
 	}
 
 	tty_info->tty = move_ptr(info_new->tty);
-	TRACE("Received %zu ttys from child", ttys_max);
+	TRACE("Received %zu ttys from child", ttys_max - ttys_min);
 	return 0;
 }
 
