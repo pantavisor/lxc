@@ -1491,7 +1491,7 @@ static int lxc_recv_ttys_from_child(struct lxc_handler *handler)
 	struct lxc_conf *conf = handler->conf;
 	struct lxc_tty_info *ttys = &conf->ttys;
 
-	if (!conf->ttys.max)
+	if (!conf->ttys.max || conf->ttys.min >= conf->ttys.max)
 		return 0;
 
 	ttys->tty = calloc(ttys->max, sizeof(*ttys->tty));

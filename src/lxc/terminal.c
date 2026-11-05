@@ -590,7 +590,7 @@ int lxc_terminal_allocate(struct lxc_conf *conf, int sockfd, int *ttyreq)
 	}
 
 	if (*ttyreq > 0) {
-		if (*ttyreq < ttys->min || *ttyreq > ttys->max)
+		if ((size_t)*ttyreq <= ttys->min || (size_t)*ttyreq > ttys->max)
 			goto out;
 
 		if (ttys->tty[*ttyreq - 1].busy >= 0)
@@ -607,7 +607,7 @@ int lxc_terminal_allocate(struct lxc_conf *conf, int sockfd, int *ttyreq)
 	}
 
 	/* We didn't find any available slot for tty. */
-	if (ttynum < ttys->min || ttynum > ttys->max)
+	if (ttynum > ttys->max)
 		goto out;
 
 	*ttyreq = ttynum;
