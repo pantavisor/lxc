@@ -24,6 +24,12 @@ This document describes the porting of Pantavisor-specific patches from LXC stab
 | `d99a550c2` | Support /exports mounts for Pantavisor | `da3d6e465` |
 | `9343fe098` | Block SIGCHLD in run_buffer to prevent child reaping issues | `e202a8371`, `8e50fba97` |
 
+### Config key carried as a recipe patch
+
+`lxc.tty.min` (lower bound of tty allocation, so `min = 3`, `max = 6` gives
+`/dev/tty4` to `/dev/tty6`) was only carried as a recipe patch on top of 3.0
+(`b5f806688`). It is now part of this branch.
+
 ### Additional Changes in Ported Patches
 
 - **pv-root platform support:** The `set_container_type()` commit also includes logic to omit setting `container=` env var when type is "pv-root" (from `6fc218fba`)

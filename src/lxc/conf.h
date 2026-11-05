@@ -193,10 +193,12 @@ struct id_map {
 
 /* Defines the number of tty configured and contains the
  * instantiated ptys
- * @max = number of configured ttys
+ * @max = highest configured tty index (1-based)
+ * @min = number of leading ttys to skip; tty(min+1)..tty(max) are set up
  */
 struct lxc_tty_info {
 	size_t max;
+	size_t min;
 	char *dir;
 	char *tty_names;
 	struct lxc_terminal_info *tty;

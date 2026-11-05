@@ -1024,6 +1024,20 @@
             </para>
           </listitem>
         </varlistentry>
+        <varlistentry>
+          <term>
+            <option>lxc.tty.min</option>
+          </term>
+          <listitem>
+            <para>
+              Number of leading ttys to leave alone. With
+              <option>lxc.tty.min = 3</option> and
+              <option>lxc.tty.max = 6</option>, only
+              <filename>/dev/tty4</filename> to <filename>/dev/tty6</filename>
+              are made available. Defaults to 0.
+            </para>
+          </listitem>
+        </varlistentry>
       </variablelist>
     </refsect2>
 
